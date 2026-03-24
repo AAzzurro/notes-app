@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>我的笔记</title>
+</head>
+<body>
+    <h2>你好，{{ current_user.username }}！</h2>
+    <a href="/notes/new">写新笔记</a> | <a href="/logout">退出登录</a>
+    <hr>
+    <h3>我的笔记</h3>
+    {% for note in notes %}
+        <div>
+            <h4>{{ note.title }}</h4>
+            <p>{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            <a href="/notes/{{ note.id }}">查看</a>
+        </div>
+        <hr>
+    {% else %}
+        <p>还没有笔记，快去写第一篇吧！</p>
+    {% endfor %}
+</body>
+</html>
