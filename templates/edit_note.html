@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>编辑笔记</title>
+</head>
+<body>
+    <h2>编辑笔记</h2>
+    <form method="POST">
+        <p>标题：<input type="text" name="title" value="{{ note.title }}" style="width:400px"></p>
+        <p>内容：<br><textarea name="content" rows="15" cols="60">{{ note.content }}</textarea></p>
+        <p><input type="submit" value="保存修改"></p>
+    </form>
+    <a href="/notes/{{ note.id }}">取消</a>
+</body>
+</html>

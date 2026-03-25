@@ -87,7 +87,31 @@ def new_note():
 @login_required
 def view_note(note_id):
     note = Note.query.get_or_404(note_id)
+    return render_template('view_note.html', note=note)
+
+@login_required
+def view_note(note_id):
+    note = Note.query.get_or_404(note_id)
     return f'<h2>{note.title}</h2><p>{note.content}</p><a href="/">返回</a>'
+
+@app.route('/notes/<int:note_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_note(note_id):
+    note = Note.query.get_or_404(note_id)
+    if request.method == 'POST':
+        note.title = request.form['title']
+        note.content = request.form['content']
+        db.session.commit()
+        return redirect(url_for('view_note', note_id=note.id))
+    return render_template('edit_note.html', note=note)
+
+@app.route('/notes/<int:note_id>/delete')
+@login_required
+def delete_note(note_id):
+    note = Note.query.get_or_404(note_id)
+    db.session.delete(note)
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     with app.app_context():
