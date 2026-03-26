@@ -33,6 +33,7 @@ class Note(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_public = db.Column(db.Boolean, default=False)
     tags = db.relationship('Tag', secondary=note_tags, backref='notes')
 
 @login_manager.user_loader
@@ -138,6 +139,30 @@ def delete_note(note_id):
     db.session.delete(note)
     db.session.commit()
     return redirect(url_for('index'))
+
+@app.route('/notes/<int:note_id>/toggle_public')
+@login_required
+def toggle_public(note_id):
+    note = Note.query.get_or_404(note_id)
+    note.is_public = not note.is_public
+    db.session.commit()
+    return redirect(url_for('view_note', note_id=note.id))
+
+@app.route('/share/<int:note_id>')
+def share_note(note_id):
+    note = Note.query.get_or_404(note_id)
+    if not note.is_public:
+        return '这篇笔记不是公开的', 403
+    return f'''
+    <h2>{note.title}</h2>
+    <p>作者：{note.author.username}</p>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <div id="content"></div>
+    <script>
+        const raw = {note.content!r};
+        document.getElementById("content").innerHTML = marked.parse(raw);
+    </script>
+    '''
 
 @app.route('/tags/<int:tag_id>')
 @login_required

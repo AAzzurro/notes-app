@@ -8,9 +8,19 @@
 <body>
     <a href="/">返回首页</a> | 
     <a href="/notes/{{ note.id }}/edit">编辑</a> |
-    <a href="/notes/{{ note.id }}/delete">删除</a>
+    <a href="/notes/{{ note.id }}/delete">删除</a> |
+    {% if note.is_public %}
+        <a href="/notes/{{ note.id }}/toggle_public">设为私有</a> |
+        <span>分享链接：<a href="/share/{{ note.id }}">/share/{{ note.id }}</a></span>
+    {% else %}
+        <a href="/notes/{{ note.id }}/toggle_public">设为公开</a>
+    {% endif %}
     <hr>
     <h2>{{ note.title }}</h2>
+    {% for tag in note.tags %}
+        <a href="/tags/{{ tag.id }}">📌{{ tag.name }}</a>
+    {% endfor %}
+    <hr>
     <div id="content"></div>
     <script>
         const raw = {{ note.content | tojson }};
