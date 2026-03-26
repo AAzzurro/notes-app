@@ -1,18 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>注册</title>
-</head>
-<body>
-    <h2>注册账号</h2>
-    <form method="POST">
-        <p>用户名：<input type="text" name="username"></p>
-        <p>密码：<input type="password" name="password"></p>
-        <p><input type="submit" value="注册"></p>
-    </form>
-    {% if error %}
-        <p style="color:red">{{ error }}</p>
-    {% endif %}
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}注册{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card p-4 mt-5">
+            <h4 class="mb-4 text-center">注册账号</h4>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">用户名</label>
+                    <input type="text" name="username" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">密码</label>
+                    <input type="password" name="password" class="form-control">
+                </div>
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <button type="submit" class="btn btn-dark w-100">注册</button>
+            </form>
+            <p class="text-center mt-3">已有账号？<a href="/login">登录</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

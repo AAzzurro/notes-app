@@ -1,17 +1,41 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>写笔记</title>
-</head>
-<body>
-    <h2>写新笔记</h2>
-    <form method="POST">
-        <p>标题：<input type="text" name="title" style="width:400px"></p>
-        <p>标签：<input type="text" name="tags" placeholder="用逗号分隔，如：操作系统,虚拟存储器" style="width:400px"></p>
-        <p>内容：<br><textarea name="content" rows="15" cols="60"></textarea></p>
-        <p><input type="submit" value="保存"></p>
-    </form>
-    <a href="/">返回首页</a>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}写笔记{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h4 class="mb-4">写新笔记</h4>
+            <form method="POST" id="noteForm">
+                <div class="mb-3">
+                    <label class="form-label">标题</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">标签</label>
+                    <input type="text" name="tags" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">内容</label>
+                    <input type="hidden" name="content" id="hiddenContent">
+                    <textarea id="editor"></textarea>
+                </div>
+                <button type="submit" class="btn btn-dark">保存</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script>
+    const easyMDE = new EasyMDE({
+        element: document.getElementById('editor'),
+        spellChecker: false,
+        autosave: { enabled: true, uniqueId: 'new_note' },
+        placeholder: '用Markdown写笔记...',
+    });
+    document.getElementById('noteForm').addEventListener('submit', function() {
+        document.getElementById('hiddenContent').value = easyMDE.value();
+    });
+</script>
+{% endblock %}

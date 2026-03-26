@@ -1,30 +1,41 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>{{ note.title }}</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-</head>
-<body>
-    <a href="/">返回首页</a> | 
-    <a href="/notes/{{ note.id }}/edit">编辑</a> |
-    <a href="/notes/{{ note.id }}/delete">删除</a> |
-    {% if note.is_public %}
-        <a href="/notes/{{ note.id }}/toggle_public">设为私有</a> |
-        <span>分享链接：<a href="/share/{{ note.id }}">/share/{{ note.id }}</a></span>
-    {% else %}
-        <a href="/notes/{{ note.id }}/toggle_public">设为公开</a>
-    {% endif %}
-    <hr>
-    <h2>{{ note.title }}</h2>
-    {% for tag in note.tags %}
-        <a href="/tags/{{ tag.id }}">📌{{ tag.name }}</a>
-    {% endfor %}
-    <hr>
-    <div id="content"></div>
-    <script>
-        const raw = {{ note.content | tojson }};
-        document.getElementById('content').innerHTML = marked.parse(raw);
-    </script>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}{{ note.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">{{ note.title }}</h4>
+                <div>
+                    <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">编辑</a>
+                    <a href="/notes/{{ note.id }}/toggle_public" class="btn btn-sm btn-outline-{% if note.is_public %}warning{% else %}success{% endif %} me-1">
+                        {% if note.is_public %}设为私有{% else %}设为公开{% endif %}
+                    </a>
+                    <a href="/notes/{{ note.id }}/delete" class="btn btn-sm btn-outline-danger"
+                       onclick="return confirm('确定删除？')">删除</a>
+                </div>
+            </div>
+            <div class="mb-3">
+                <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                {% for tag in note.tags %}
+                <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
+                {% endfor %}
+            </div>
+            {% if note.is_public %}
+            <div class="alert alert-success py-2">
+                分享链接：<a href="/share/{{ note.id }}">{{ request.host_url }}share/{{ note.id }}</a>
+            </div>
+            {% endif %}
+            <hr>
+            <div id="content"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const raw = {{ note.content | tojson }};
+    document.getElementById('content').innerHTML = marked.parse(raw);
+</script>
+{% endblock %}

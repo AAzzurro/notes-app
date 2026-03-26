@@ -1,25 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>我的笔记</title>
-</head>
-<body>
-    <h2>你好，{{ current_user.username }}！</h2>
-    <a href="/notes/new">写新笔记</a> | <a href="/logout">退出登录</a>
-    <hr>
-    <h3>我的笔记</h3>
-    {% for note in notes %}
-        <div>
-            <h4><a href="/notes/{{ note.id }}">{{ note.title }}</a></h4>
-            <p>{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-            {% for tag in note.tags %}
-                <a href="/tags/{{ tag.id }}">📌{{ tag.name }}</a>
+{% extends 'base.html' %}
+{% block title %}我的笔记{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h5 class="mb-4">我的笔记</h5>
+        {% for note in notes %}
+        <div class="card mb-3 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5><a href="/notes/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
+                    <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    <div class="mt-2">
+                        {% for tag in note.tags %}
+                        <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if note.is_public %}
+                <span class="badge bg-success">公开</span>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card p-4 text-center text-muted">
+            <p>还没有笔记，快去写第一篇吧！</p>
+            <a href="/notes/new" class="btn btn-dark">写笔记</a>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-md-4">
+        <h5 class="mb-4">所有标签</h5>
+        <div class="card p-3">
+            {% set all_tags = [] %}
+            {% for note in notes %}
+                {% for tag in note.tags %}
+                    {% if tag not in all_tags %}
+                        {% set _ = all_tags.append(tag) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            {% for tag in all_tags %}
+                <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }} d-inline-block mb-2">{{ tag.name }}</a>
+            {% else %}
+                <p class="text-muted">还没有标签</p>
             {% endfor %}
         </div>
-        <hr>
-    {% else %}
-        <p>还没有笔记，快去写第一篇吧！</p>
-    {% endfor %}
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}

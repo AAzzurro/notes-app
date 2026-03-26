@@ -54,6 +54,7 @@ def register():
             new_user = User(username=username, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
+            login_user(new_user)
             return redirect(url_for('index'))
     return render_template('register.html', error=error)
 
@@ -68,7 +69,7 @@ def login():
             error = '用户名或密码错误'
         else:
             login_user(user)
-            return redirect(url_for('hello'))
+            return redirect(url_for('index'))
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -88,6 +89,8 @@ def index():
 def new_note():
     if request.method == 'POST':
         title = request.form['title']
+        if not title.strip():
+            return render_template('new_note.html', error='标题不能为空')
         content = request.form['content']
         tag_names = [t.strip() for t in request.form['tags'].split(',') if t.strip()]
         note = Note(title=title, content=content, user_id=current_user.id)
@@ -101,6 +104,7 @@ def new_note():
         db.session.commit()
         return redirect(url_for('index'))
     return render_template('new_note.html')
+
 
 @app.route('/notes/<int:note_id>')
 @login_required

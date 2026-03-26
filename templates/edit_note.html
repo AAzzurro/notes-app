@@ -1,17 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>编辑笔记</title>
-</head>
-<body>
-    <h2>编辑笔记</h2>
-    <form method="POST">
-        <p>标题：<input type="text" name="title" value="{{ note.title }}" style="width:400px"></p>
-        <p>标签：<input type="text" name="tags" value="{{ note.tags | map(attribute='name') | join(',') }}" style="width:400px"></p>
-        <p>内容：<br><textarea name="content" rows="15" cols="60">{{ note.content }}</textarea></p>
-        <p><input type="submit" value="保存修改"></p>
-    </form>
-    <a href="/notes/{{ note.id }}">取消</a>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}编辑笔记{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h4 class="mb-4">编辑笔记</h4>
+            <form method="POST" id="noteForm">
+                <div class="mb-3">
+                    <label class="form-label">标题</label>
+                    <input type="text" name="title" value="{{ note.title }}" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">标签</label>
+                    <input type="text" name="tags" value="{{ note.tags | map(attribute='name') | join(',') }}" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">内容</label>
+                    <textarea id="editor" name="content">{{ note.content }}</textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-dark">保存修改</button>
+                    <a href="/notes/{{ note.id }}" class="btn btn-outline-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script>
+    const easyMDE = new EasyMDE({
+        element: document.getElementById('editor'),
+        spellChecker: false,
+        placeholder: '用Markdown写笔记...',
+    });
+</script>
+{% endblock %}
