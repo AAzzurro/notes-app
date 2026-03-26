@@ -11,6 +11,16 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
+# 笔记-标签 多对多关联表
+note_tags = db.Table('note_tags',
+    db.Column('note_id', db.Integer, db.ForeignKey('note.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -23,6 +33,7 @@ class Note(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tags = db.relationship('Tag', secondary=note_tags, backref='notes')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -42,7 +53,7 @@ def register():
             new_user = User(username=username, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            return redirect(url_for('hello'))
+            return redirect(url_for('index'))
     return render_template('register.html', error=error)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -77,7 +88,14 @@ def new_note():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
+        tag_names = [t.strip() for t in request.form['tags'].split(',') if t.strip()]
         note = Note(title=title, content=content, user_id=current_user.id)
+        for tag_name in tag_names:
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                db.session.add(tag)
+            note.tags.append(tag)
         db.session.add(note)
         db.session.commit()
         return redirect(url_for('index'))
@@ -101,6 +119,14 @@ def edit_note(note_id):
     if request.method == 'POST':
         note.title = request.form['title']
         note.content = request.form['content']
+        tag_names = [t.strip() for t in request.form['tags'].split(',') if t.strip()]
+        note.tags = []
+        for tag_name in tag_names:
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                db.session.add(tag)
+            note.tags.append(tag)
         db.session.commit()
         return redirect(url_for('view_note', note_id=note.id))
     return render_template('edit_note.html', note=note)
@@ -112,6 +138,13 @@ def delete_note(note_id):
     db.session.delete(note)
     db.session.commit()
     return redirect(url_for('index'))
+
+@app.route('/tags/<int:tag_id>')
+@login_required
+def view_tag(tag_id):
+    tag = Tag.query.get_or_404(tag_id)
+    notes = [note for note in tag.notes if note.user_id == current_user.id]
+    return render_template('tag.html', tag=tag, notes=notes)
 
 if __name__ == '__main__':
     with app.app_context():

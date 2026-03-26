@@ -8,6 +8,7 @@
     <h2>编辑笔记</h2>
     <form method="POST">
         <p>标题：<input type="text" name="title" value="{{ note.title }}" style="width:400px"></p>
+        <p>标签：<input type="text" name="tags" value="{{ note.tags | map(attribute='name') | join(',') }}" style="width:400px"></p>
         <p>内容：<br><textarea name="content" rows="15" cols="60">{{ note.content }}</textarea></p>
         <p><input type="submit" value="保存修改"></p>
     </form>

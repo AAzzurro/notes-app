@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>标签：{{ tag.name }}</title>
+</head>
+<body>
+    <a href="/">返回首页</a>
+    <h2>标签：{{ tag.name }}</h2>
+    <p>共 {{ notes|length }} 篇笔记</p>
+    <hr>
+    {% for note in notes %}
+        <div>
+            <h4><a href="/notes/{{ note.id }}">{{ note.title }}</a></h4>
+            <p>{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        <hr>
+    {% endfor %}
+</body>
+</html>
