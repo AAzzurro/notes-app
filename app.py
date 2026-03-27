@@ -21,6 +21,12 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
 
+class Folder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    notes = db.relationship('Note', backref='folder', lazy=True)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -33,6 +39,7 @@ class Note(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    folder_id = db.Column(db.Integer, db.ForeignKey('folder.id'), nullable=True)
     is_public = db.Column(db.Boolean, default=False)
     tags = db.relationship('Tag', secondary=note_tags, backref='notes')
 
@@ -82,18 +89,21 @@ def logout():
 @login_required
 def index():
     notes = Note.query.filter_by(user_id=current_user.id).order_by(Note.created_at.desc()).all()
-    return render_template('index.html', notes=notes)
+    folders = Folder.query.filter_by(user_id=current_user.id).all()
+    return render_template('index.html', notes=notes, folders=folders)
 
 @app.route('/notes/new', methods=['GET', 'POST'])
 @login_required
 def new_note():
     if request.method == 'POST':
         title = request.form['title']
-        if not title.strip():
-            return render_template('new_note.html', error='标题不能为空')
         content = request.form['content']
+        if not title.strip():
+            folders = Folder.query.filter_by(user_id=current_user.id).all()
+            return render_template('new_note.html', error='标题不能为空', folders=folders)
         tag_names = [t.strip() for t in request.form['tags'].split(',') if t.strip()]
-        note = Note(title=title, content=content, user_id=current_user.id)
+        folder_id = request.form.get('folder_id') or None
+        note = Note(title=title, content=content, user_id=current_user.id, folder_id=folder_id)
         for tag_name in tag_names:
             tag = Tag.query.filter_by(name=tag_name).first()
             if not tag:
@@ -103,7 +113,8 @@ def new_note():
         db.session.add(note)
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('new_note.html')
+    folders = Folder.query.filter_by(user_id=current_user.id).all()
+    return render_template('new_note.html', folders=folders)
 
 
 @app.route('/notes/<int:note_id>')
@@ -125,6 +136,7 @@ def edit_note(note_id):
         note.title = request.form['title']
         note.content = request.form['content']
         tag_names = [t.strip() for t in request.form['tags'].split(',') if t.strip()]
+        note.folder_id = request.form.get('folder_id') or None
         note.tags = []
         for tag_name in tag_names:
             tag = Tag.query.filter_by(name=tag_name).first()
@@ -134,7 +146,8 @@ def edit_note(note_id):
             note.tags.append(tag)
         db.session.commit()
         return redirect(url_for('view_note', note_id=note.id))
-    return render_template('edit_note.html', note=note)
+    folders = Folder.query.filter_by(user_id=current_user.id).all()
+    return render_template('edit_note.html', note=note, folders=folders)
 
 @app.route('/notes/<int:note_id>/delete')
 @login_required
@@ -174,6 +187,36 @@ def view_tag(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     notes = [note for note in tag.notes if note.user_id == current_user.id]
     return render_template('tag.html', tag=tag, notes=notes)
+
+@app.route('/folders/new', methods=['GET', 'POST'])
+@login_required
+def new_folder():
+    if request.method == 'POST':
+        name = request.form['name']
+        if not name.strip():
+            return redirect(url_for('index'))
+        folder = Folder(name=name, user_id=current_user.id)
+        db.session.add(folder)
+        db.session.commit()
+        return redirect(url_for('index'))
+    return redirect(url_for('index'))
+
+@app.route('/folders/<int:folder_id>')
+@login_required
+def view_folder(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    notes = Note.query.filter_by(folder_id=folder_id, user_id=current_user.id).order_by(Note.created_at.desc()).all()
+    return render_template('folder.html', folder=folder, notes=notes)
+
+@app.route('/folders/<int:folder_id>/delete')
+@login_required
+def delete_folder(folder_id):
+    folder = Folder.query.get_or_404(folder_id)
+    for note in folder.notes:
+        note.folder_id = None
+    db.session.delete(folder)
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     with app.app_context():

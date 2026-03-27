@@ -10,6 +10,9 @@
                 <div>
                     <h5><a href="/notes/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
                     <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% if note.folder %}
+                    <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
+                    {% endif %}
                     <div class="mt-2">
                         {% for tag in note.tags %}
                         <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
@@ -29,8 +32,29 @@
         {% endfor %}
     </div>
     <div class="col-md-4">
-        <h5 class="mb-4">所有标签</h5>
+        <!-- 文件夹 -->
+        <div class="card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">📁 文件夹</h6>
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#newFolderForm">+</button>
+            </div>
+            <div class="collapse mb-2" id="newFolderForm">
+                <form method="POST" action="/folders/new" class="d-flex gap-2">
+                    <input type="text" name="name" class="form-control form-control-sm" placeholder="文件夹名称">
+                    <button type="submit" class="btn btn-sm btn-dark">建</button>
+                </form>
+            </div>
+            {% for folder in folders %}
+            <a href="/folders/{{ folder.id }}" class="d-block text-decoration-none text-dark py-1">
+                📁 {{ folder.name }}
+            </a>
+            {% else %}
+            <p class="text-muted small mb-0">还没有文件夹</p>
+            {% endfor %}
+        </div>
+        <!-- 标签 -->
         <div class="card p-3">
+            <h6 class="mb-3">🏷️ 所有标签</h6>
             {% set all_tags = [] %}
             {% for note in notes %}
                 {% for tag in note.tags %}
@@ -40,9 +64,9 @@
                 {% endfor %}
             {% endfor %}
             {% for tag in all_tags %}
-                <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }} d-inline-block mb-2">{{ tag.name }}</a>
+            <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }} d-inline-block mb-2">{{ tag.name }}</a>
             {% else %}
-                <p class="text-muted">还没有标签</p>
+            <p class="text-muted small mb-0">还没有标签</p>
             {% endfor %}
         </div>
     </div>
