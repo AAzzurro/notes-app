@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}个人设置{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        <div class="card p-4 mb-3">
+            <h5 class="mb-4">修改用户名</h5>
+            <form method="POST">
+                <input type="hidden" name="action" value="username">
+                <div class="mb-3">
+                    <label class="form-label">新用户名</label>
+                    <input type="text" name="username" class="form-control" value="{{ current_user.username }}">
+                </div>
+                <button type="submit" class="btn btn-dark">保存</button>
+            </form>
+        </div>
+        <div class="card p-4">
+            <h5 class="mb-4">修改密码</h5>
+            <form method="POST">
+                <input type="hidden" name="action" value="password">
+                <div class="mb-3">
+                    <label class="form-label">原密码</label>
+                    <input type="password" name="old_password" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">新密码</label>
+                    <input type="password" name="new_password" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-dark">保存</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

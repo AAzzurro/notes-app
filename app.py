@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-123'
@@ -10,6 +10,36 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
+
+@app.template_filter('local_time')
+def local_time(dt):
+    if dt is None:
+        return ''
+    beijing = timezone(timedelta(hours=8))
+    return dt.replace(tzinfo=timezone.utc).astimezone(beijing).strftime('%Y-%m-%d %H:%M')
+
+import re
+
+@app.template_filter('highlight')
+def highlight(text, query):
+    if not query:
+        return text
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+    return pattern.sub(f'<mark>{query}</mark>', text)
+
+@app.template_filter('preview')
+def preview(content, query):
+    if not query:
+        return content[:150] + '...'
+    idx = content.lower().find(query.lower())
+    if idx == -1:
+        return content[:150] + '...'
+    start = max(0, idx - 60)
+    end = min(len(content), idx + 60)
+    snippet = content[start:end]
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+    snippet = pattern.sub(f'<mark>{query}</mark>', snippet)
+    return ('...' if start > 0 else '') + snippet + ('...' if end < len(content) else '')
 
 # 笔记-标签 多对多关联表
 note_tags = db.Table('note_tags',
@@ -38,6 +68,7 @@ class Note(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     folder_id = db.Column(db.Integer, db.ForeignKey('folder.id'), nullable=True)
     is_public = db.Column(db.Boolean, default=False)
@@ -88,9 +119,25 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    notes = Note.query.filter_by(user_id=current_user.id).order_by(Note.created_at.desc()).all()
+    folder_id = request.args.get('folder_id')
+    tag_id = request.args.get('tag_id')
+    
+    query = Note.query.filter_by(user_id=current_user.id)
+    
+    if folder_id:
+        query = query.filter_by(folder_id=folder_id)
+    if tag_id:
+        tag = Tag.query.get(tag_id)
+        if tag:
+            query = query.filter(Note.tags.contains(tag))
+    
+    notes = query.order_by(Note.created_at.desc()).all()
     folders = Folder.query.filter_by(user_id=current_user.id).all()
-    return render_template('index.html', notes=notes, folders=folders)
+    tags = Tag.query.join(note_tags).join(Note).filter(Note.user_id == current_user.id).distinct().all()
+    
+    return render_template('index.html', notes=notes, folders=folders, tags=tags,
+                         current_folder_id=int(folder_id) if folder_id else None,
+                         current_tag_id=int(tag_id) if tag_id else None)
 
 @app.route('/notes/new', methods=['GET', 'POST'])
 @login_required
@@ -187,6 +234,78 @@ def view_tag(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     notes = [note for note in tag.notes if note.user_id == current_user.id]
     return render_template('tag.html', tag=tag, notes=notes)
+
+@app.route('/search')
+@login_required
+def search():
+    query = request.args.get('q', '').strip()
+    notes = []
+    if query:
+        notes = Note.query.filter(
+            Note.user_id == current_user.id,
+            (Note.title.contains(query) | Note.content.contains(query))
+        ).order_by(Note.created_at.desc()).all()
+    return render_template('search.html', notes=notes, query=query)
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    error = None
+    success = None
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'username':
+            new_username = request.form['username'].strip()
+            if not new_username:
+                error = '用户名不能为空'
+            elif User.query.filter_by(username=new_username).first():
+                error = '用户名已存在'
+            else:
+                current_user.username = new_username
+                db.session.commit()
+                success = '用户名修改成功'
+        elif action == 'password':
+            old_password = request.form['old_password']
+            new_password = request.form['new_password']
+            if not check_password_hash(current_user.password, old_password):
+                error = '原密码错误'
+            elif not new_password:
+                error = '新密码不能为空'
+            else:
+                current_user.password = generate_password_hash(new_password)
+                db.session.commit()
+                success = '密码修改成功'
+    return render_template('profile.html', error=error, success=success)
+
+import os
+from werkzeug.utils import secure_filename
+
+@app.route('/notes/import', methods=['POST'])
+@login_required
+def import_note():
+    file = request.files.get('file')
+    if not file or not file.filename.endswith('.md'):
+        return redirect(url_for('index'))
+    filename = secure_filename(file.filename)
+    title = os.path.splitext(filename)[0]
+    content = file.read().decode('utf-8')
+    note = Note(title=title, content=content, user_id=current_user.id)
+    db.session.add(note)
+    db.session.commit()
+    return redirect(url_for('view_note', note_id=note.id))
+
+@app.route('/notes/<int:note_id>/export')
+@login_required
+def export_note(note_id):
+    note = Note.query.get_or_404(note_id)
+    from flask import Response
+    import urllib.parse
+    encoded_filename = urllib.parse.quote(note.title + '.md')
+    return Response(
+        note.content,
+        mimetype='text/markdown',
+        headers={'Content-Disposition': f"attachment; filename*=UTF-8''{encoded_filename}"}
+    )
 
 @app.route('/folders/new', methods=['GET', 'POST'])
 @login_required

@@ -9,7 +9,7 @@
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <h5><a href="/notes/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
-                    <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    <small class="text-muted">{{ note.created_at | local_time }}</small>
                     <div class="mt-2">
                         {% for t in note.tags %}
                         <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>

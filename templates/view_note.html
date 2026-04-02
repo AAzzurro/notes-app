@@ -8,6 +8,7 @@
                 <h4 class="mb-0">{{ note.title }}</h4>
                 <div>
                     <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">编辑</a>
+                    <a href="/notes/{{ note.id }}/export" class="btn btn-sm btn-outline-secondary me-1">导出md</a>
                     <a href="/notes/{{ note.id }}/toggle_public" class="btn btn-sm btn-outline-{% if note.is_public %}warning{% else %}success{% endif %} me-1">
                         {% if note.is_public %}设为私有{% else %}设为公开{% endif %}
                     </a>
@@ -16,7 +17,7 @@
                 </div>
             </div>
             <div class="mb-3">
-                <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                <small class="text-muted">{{ note.created_at | local_time }}</small>
                 {% for tag in note.tags %}
                 <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
                 {% endfor %}

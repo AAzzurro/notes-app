@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}搜索{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <form method="GET" action="/search" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="搜索笔记标题或内容...">
+                <button type="submit" class="btn btn-dark">搜索</button>
+            </div>
+        </form>
+        {% if query %}
+        <p class="text-muted">「{{ query }}」共找到 {{ notes|length }} 篇笔记</p>
+        {% for note in notes %}
+        <div class="card mb-3 p-3">
+            <h5>
+                <a href="/notes/{{ note.id }}?highlight={{ query }}" class="text-decoration-none text-dark">
+                    {{ note.title | highlight(query) | safe }}
+                </a>
+            </h5>
+            <small class="text-muted">{{ note.created_at | local_time }}</small>
+            <div class="mt-2 text-muted small">
+                {{ note.content | preview(query) | safe }}
+            </div>
+            <div class="mt-2">
+                {% for tag in note.tags %}
+                <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card p-4 text-center text-muted">没有找到相关笔记</div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

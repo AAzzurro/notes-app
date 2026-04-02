@@ -4,12 +4,27 @@
 <div class="row">
     <div class="col-md-8">
         <h5 class="mb-4">我的笔记</h5>
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+            <a href="/" class="btn btn-sm {% if not current_folder_id and not current_tag_id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                全部
+            </a>
+            {% for folder in folders %}
+            <a href="/?folder_id={{ folder.id }}" class="btn btn-sm {% if current_folder_id == folder.id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                📁 {{ folder.name }}
+            </a>
+            {% endfor %}
+            {% for tag in tags %}
+            <a href="/?tag_id={{ tag.id }}" class="btn btn-sm tag-color-{{ tag.id % 8 }} {% if current_tag_id == tag.id %}opacity-100{% else %}opacity-75{% endif %}" style="color:white">
+                {{ tag.name }}
+            </a>
+            {% endfor %}
+        </div>
         {% for note in notes %}
         <div class="card mb-3 p-3">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <h5><a href="/notes/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
-                    <small class="text-muted">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    <small class="text-muted">{{ note.created_at | local_time }}</small>
                     {% if note.folder %}
                     <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
                     {% endif %}

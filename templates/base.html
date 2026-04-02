@@ -34,9 +34,19 @@
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">📒 随心记</a>
             {% if current_user.is_authenticated %}
+            <form class="d-flex me-2" method="GET" action="/search">
+                <input type="text" name="q" class="form-control form-control-sm me-1" placeholder="搜索笔记..." style="width:180px">
+                <button type="submit" class="btn btn-sm btn-outline-light">搜索</button>
+            </form>
             <div>
-                <span class="text-white me-3">{{ current_user.username }}</span>
+                <a href="/profile" class="text-white text-decoration-none me-3">{{ current_user.username }}</a>
                 <a href="/notes/new" class="btn btn-sm btn-outline-light me-2">写笔记</a>
+                <form method="POST" action="/notes/import" enctype="multipart/form-data" class="d-inline">
+                    <label class="btn btn-sm btn-outline-light me-2">
+                        导入md
+                        <input type="file" name="file" accept=".md" style="display:none" onchange="this.form.submit()">
+                    </label>
+                </form>
                 <a href="/logout" class="btn btn-sm btn-outline-light">退出</a>
             </div>
             {% endif %}
