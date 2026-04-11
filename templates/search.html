@@ -3,12 +3,14 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8">
-        <form method="GET" action="/search" class="mb-4">
+        <form method="GET" action="/search" id="searchForm" class="mb-4">
             <div class="input-group">
-                <select name="scope" class="form-select" style="width:auto" onchange="this.form.action=this.value==='plaza'?'/plaza':'/search'">
-                    <option value="mine" {% if scope != 'plaza' %}selected{% endif %}>我的笔记</option>
-                    <option value="plaza" {% if scope == 'plaza' %}selected{% endif %}>笔记广场</option>
-                </select>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="scope" id="search-scope-mine" value="mine" autocomplete="off" {% if scope != 'plaza' %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="search-scope-mine">我的笔记</label>
+                    <input type="radio" class="btn-check" name="scope" id="search-scope-plaza" value="plaza" autocomplete="off" {% if scope == 'plaza' %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="search-scope-plaza">笔记广场</label>
+                </div>
                 <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="搜索笔记标题或内容...">
                 <button type="submit" class="btn btn-dark">搜索</button>
             </div>
@@ -72,4 +74,13 @@
         </div>
     </div>
 </div>
+{% block scripts %}
+<script>
+    document.querySelectorAll('#searchForm input[name="scope"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            document.getElementById('searchForm').action = this.value === 'plaza' ? '/plaza' : '/search';
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}

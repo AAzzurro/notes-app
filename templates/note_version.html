@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}{{ version.title }} - 历史版本详情{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">{{ version.title }}</h4>
+                <div class="d-flex gap-1">
+                    <form method="POST" action="/notes/{{ note.id }}/history/{{ version.id }}/rollback"
+                          onsubmit="return confirm('回滚到此版本？当前内容将保存为新版本。')">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">回滚到此版本</button>
+                    </form>
+                    <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary">版本列表</a>
+                </div>
+            </div>
+            <div class="mb-3">
+                <small class="text-muted">版本保存于 {{ version.created_at | local_time }}</small>
+                {% if version.tags_snapshot %}
+                {% for tag_name in version.tags_snapshot.split(',') %}
+                <span class="tag-badge tag-color-{{ loop.index0 % 8 }}">{{ tag_name }}</span>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <hr>
+            <div id="version-content" data-raw="{{ version.content | e }}"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const el = document.getElementById('version-content');
+    const raw = el.getAttribute('data-raw');
+    el.innerHTML = marked.parse(raw);
+</script>
+{% endblock %}

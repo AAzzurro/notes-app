@@ -98,8 +98,19 @@ class Note(db.Model):
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     folder_id  = db.Column(db.Integer, db.ForeignKey('folder.id'), nullable=True)
     is_public  = db.Column(db.Boolean, default=False)
+    is_deleted = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     tags       = db.relationship('Tag', secondary=note_tags, backref='notes')
-    comments   = db.relationship('Comment', backref='note', lazy=True, order_by='Comment.created_at.desc()')
+    comments   = db.relationship('Comment', backref='note', lazy=True, order_by='Comment.created_at.desc()', cascade='all, delete-orphan')
+    versions   = db.relationship('NoteVersion', backref='note', lazy=True, order_by='NoteVersion.created_at.desc()', cascade='all, delete-orphan')
+
+class NoteVersion(db.Model):
+    id            = db.Column(db.Integer, primary_key=True)
+    note_id       = db.Column(db.Integer, db.ForeignKey('note.id'), nullable=False)
+    title         = db.Column(db.String(200), nullable=False)
+    content       = db.Column(db.Text, nullable=False)
+    tags_snapshot = db.Column(db.Text, nullable=True)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
 # 辅助函数
 
@@ -138,6 +149,10 @@ def register():
         password = request.form['password']
         if User.query.filter_by(username=username).first():
             error = '用户名已存在'
+        elif len(password) < 8:
+            error = '密码长度不能少于8位'
+        elif not re.search(r'[A-Za-z]', password) or not re.search(r'\d', password):
+            error = '密码必须同时包含字母和数字'
         else:
             user = User(username=username, password=generate_password_hash(password))
             db.session.add(user)
@@ -206,7 +221,7 @@ def index():
     folder_id = request.args.get('folder_id')
     tag_id    = request.args.get('tag_id')
 
-    q = Note.query.filter_by(user_id=current_user.id)
+    q = Note.query.filter_by(user_id=current_user.id, is_deleted=False)
     if folder_id:
         q = q.filter_by(folder_id=folder_id)
     if tag_id:
@@ -219,13 +234,15 @@ def index():
     tags    = (Tag.query
                .join(note_tags)
                .join(Note)
-               .filter(Note.user_id == current_user.id)
+               .filter(Note.user_id == current_user.id, Note.is_deleted == False)
                .distinct().all())
 
+    trash_count = Note.query.filter_by(user_id=current_user.id, is_deleted=True).count()
     return render_template(
         'index.html', notes=notes, folders=folders, tags=tags,
         current_folder_id=int(folder_id) if folder_id else None,
         current_tag_id=int(tag_id) if tag_id else None,
+        trash_count=trash_count,
     )
 
 # 笔记
@@ -264,6 +281,15 @@ def view_note(note_id):
 def edit_note(note_id):
     note = get_or_404(Note, note_id)
     if request.method == 'POST':
+        # Save version snapshot before updating
+        tags_str = ','.join(t.name for t in note.tags)
+        version = NoteVersion(
+            note_id=note.id,
+            title=note.title,
+            content=note.content,
+            tags_snapshot=tags_str,
+        )
+        db.session.add(version)
         note.title      = request.form['title']
         note.content    = request.form['content']
         note.folder_id  = request.form.get('folder_id') or None
@@ -279,7 +305,9 @@ def edit_note(note_id):
 @login_required
 def delete_note(note_id):
     note = get_or_404(Note, note_id)
-    db.session.delete(note)
+    note.is_deleted = True
+    note.deleted_at = datetime.utcnow()
+    note.is_public = False
     db.session.commit()
     return redirect(url_for('index'))
 
@@ -324,7 +352,7 @@ def search():
         # 广场搜索直接重定向到广场页
         return redirect(url_for('plaza', q=query))
 
-    q = Note.query.filter_by(user_id=current_user.id)
+    q = Note.query.filter_by(user_id=current_user.id, is_deleted=False)
     if query:
         q = q.filter(Note.title.contains(query) | Note.content.contains(query))
     if folder_id:
@@ -339,7 +367,7 @@ def search():
     tags = (Tag.query
             .join(note_tags)
             .join(Note)
-            .filter(Note.user_id == current_user.id)
+            .filter(Note.user_id == current_user.id, Note.is_deleted == False)
             .distinct().all())
 
     return render_template('search.html', notes=notes, query=query,
@@ -450,9 +478,97 @@ def delete_comment(comment_id):
     db.session.commit()
     return redirect(url_for('plaza_note', note_id=note_id))
 
-# 启动 
+# 回收站
+
+@app.route('/trash')
+@login_required
+def trash():
+    notes = Note.query.filter_by(user_id=current_user.id, is_deleted=True).order_by(Note.deleted_at.desc()).all()
+    return render_template('trash.html', notes=notes)
+
+
+@app.route('/trash/<int:note_id>/restore', methods=['POST'])
+@login_required
+def restore_note(note_id):
+    note = get_or_404(Note, note_id)
+    note.is_deleted = False
+    note.deleted_at = None
+    db.session.commit()
+    return redirect(url_for('trash'))
+
+
+@app.route('/trash/<int:note_id>/permanent_delete', methods=['POST'])
+@login_required
+def permanent_delete_note(note_id):
+    note = get_or_404(Note, note_id)
+    db.session.delete(note)
+    db.session.commit()
+    return redirect(url_for('trash'))
+
+# 历史版本
+
+@app.route('/notes/<int:note_id>/history')
+@login_required
+def note_history(note_id):
+    note = get_or_404(Note, note_id)
+    versions = NoteVersion.query.filter_by(note_id=note_id).order_by(NoteVersion.created_at.desc()).all()
+    return render_template('note_history.html', note=note, versions=versions)
+
+
+@app.route('/notes/<int:note_id>/history/<int:version_id>')
+@login_required
+def note_version(note_id, version_id):
+    note = get_or_404(Note, note_id)
+    version = get_or_404(NoteVersion, version_id)
+    if version.note_id != note.id:
+        from flask import abort
+        abort(404)
+    return render_template('note_version.html', note=note, version=version)
+
+
+@app.route('/notes/<int:note_id>/history/<int:version_id>/rollback', methods=['POST'])
+@login_required
+def rollback_note(note_id, version_id):
+    note = get_or_404(Note, note_id)
+    version = get_or_404(NoteVersion, version_id)
+    if version.note_id != note.id:
+        from flask import abort
+        abort(404)
+    # Save current state as a new version before rollback
+    tags_str = ','.join(t.name for t in note.tags)
+    current_version = NoteVersion(
+        note_id=note.id,
+        title=note.title,
+        content=note.content,
+        tags_snapshot=tags_str,
+    )
+    db.session.add(current_version)
+    # Rollback to the selected version
+    note.title = version.title
+    note.content = version.content
+    note.updated_at = datetime.utcnow()
+    sync_tags(note, version.tags_snapshot or '')
+    db.session.commit()
+    return redirect(url_for('view_note', note_id=note.id))
+
+# 启动
 
 if __name__ == '__main__':
     with app.app_context():
+        # Auto-migrate: add new columns to existing tables
+        import sqlite3
+        db_path = os.path.join(app.instance_path, 'notes.db')
+        if os.path.exists(db_path):
+            con = sqlite3.connect(db_path)
+            cur = con.cursor()
+            # Add is_deleted / deleted_at to note table
+            cur.execute("PRAGMA table_info(note)")
+            note_cols = {row[1] for row in cur.fetchall()}
+            if 'is_deleted' not in note_cols:
+                cur.execute('ALTER TABLE note ADD COLUMN is_deleted BOOLEAN DEFAULT 0')
+            if 'deleted_at' not in note_cols:
+                cur.execute('ALTER TABLE note ADD COLUMN deleted_at DATETIME')
+            con.commit()
+            con.close()
         db.create_all()
     app.run(debug=True)

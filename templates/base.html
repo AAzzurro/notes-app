@@ -34,15 +34,16 @@
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">📒 随心记</a>
             {% if current_user.is_authenticated %}
-            <form class="d-flex me-2" method="GET" action="/search" id="navSearchForm">
-                <select name="scope" class="form-select form-select-sm me-1" style="width:auto" onchange="document.getElementById('navSearchForm').action=this.value==='plaza'?'/plaza':'/search'">
-                    <option value="mine" {% if request.path != '/plaza' %}selected{% endif %}>我的笔记</option>
-                    <option value="plaza" {% if request.path == '/plaza' %}selected{% endif %}>笔记广场</option>
-                </select>
+            <form class="d-flex align-items-center me-2" method="GET" action="/search" id="navSearchForm">
+                <div class="btn-group btn-group-sm me-1" role="group">
+                    <input type="radio" class="btn-check" name="scope" id="nav-scope-mine" value="mine" autocomplete="off" {% if request.path != '/plaza' %}checked{% endif %}>
+                    <label class="btn btn-outline-light" for="nav-scope-mine">我的</label>
+                    <input type="radio" class="btn-check" name="scope" id="nav-scope-plaza" value="plaza" autocomplete="off" {% if request.path == '/plaza' %}checked{% endif %}>
+                    <label class="btn btn-outline-light" for="nav-scope-plaza">广场</label>
+                </div>
                 <input type="text" name="q" class="form-control form-control-sm me-1" placeholder="搜索笔记..." style="width:160px">
                 <button type="submit" class="btn btn-sm btn-outline-light">搜索</button>
             </form>
-            <a href="/plaza" class="btn btn-sm btn-outline-light me-2">🌐 笔记广场</a>
             <div>
                 <a href="/profile" class="text-white text-decoration-none me-3">{{ current_user.username }}</a>
                 <a href="/notes/new" class="btn btn-sm btn-outline-light me-2">写笔记</a>
@@ -52,7 +53,8 @@
                         <input type="file" name="file" accept=".md" style="display:none" onchange="this.form.submit()">
                     </label>
                 </form>
-                <a href="/logout" class="btn btn-sm btn-outline-light">退出</a>
+                <a href="/" class="btn btn-sm btn-outline-light me-2"> 回首页</a>
+                <a href="/logout" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定要退出账号吗？')">退出账号</a>
             </div>
             {% endif %}
         </div>
@@ -61,6 +63,14 @@
         {% block content %}{% endblock %}
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 导航搜索：切换范围时同步 form action
+        document.querySelectorAll('#navSearchForm input[name="scope"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('navSearchForm').action = this.value === 'plaza' ? '/plaza' : '/search';
+            });
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

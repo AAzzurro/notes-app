@@ -88,10 +88,16 @@
             {% endfor %}
         </div>
         <!-- 笔记广场入口 -->
-        <div class="card p-3">
+        <div class="card p-3 mb-3">
             <h6 class="mb-2">🌐 笔记广场</h6>
             <p class="small text-muted">浏览其他用户分享的公开笔记，发表评论互动。</p>
             <a href="/plaza" class="btn btn-sm btn-dark w-100">进入广场</a>
+        </div>
+        <!-- 回收站入口 -->
+        <div class="card p-3">
+            <h6 class="mb-2">🗑️ 回收站</h6>
+            <p class="small text-muted">已删除 {{ trash_count }} 篇笔记</p>
+            <a href="/trash" class="btn btn-sm {% if trash_count > 0 %}btn-outline-warning{% else %}btn-outline-secondary{% endif %} w-100">查看回收站</a>
         </div>
     </div>
 </div>

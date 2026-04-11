@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}回收站{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">🗑️ 回收站</h5>
+            <a href="/" class="btn btn-sm btn-outline-secondary">返回首页</a>
+        </div>
+        {% for note in notes %}
+        <div class="card mb-3 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="text-decoration-none text-dark">{{ note.title }}</h5>
+                    <small class="text-muted">删除于 {{ note.deleted_at | local_time }}</small>
+                    <small class="text-muted ms-2">创建于 {{ note.created_at | local_time }}</small>
+                    {% if note.folder %}
+                    <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
+                    {% endif %}
+                    <div class="mt-2">
+                        {% for tag in note.tags %}
+                        <span class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="d-flex gap-1">
+                    <form method="POST" action="/trash/{{ note.id }}/restore">
+                        <button type="submit" class="btn btn-sm btn-outline-success">恢复</button>
+                    </form>
+                    <form method="POST" action="/trash/{{ note.id }}/permanent_delete"
+                          onsubmit="return confirm('永久删除后将无法恢复，确定继续？')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">永久删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card p-4 text-center text-muted">
+            <p>回收站为空</p>
+            <a href="/" class="btn btn-dark">返回首页</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

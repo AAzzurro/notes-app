@@ -1,4 +1,4 @@
-修改的文件
+**修改的文件**
 
 app.py
 新增 Comment 数据模型（id, content, created_at, user_id, note_id）
@@ -15,6 +15,12 @@ base.html — 导航栏新增「笔记广场」按钮
 index.html — 右侧栏新增笔记广场快捷入口卡片view_note.html — 公开笔记旁新增「在广场中查看」按钮
 
 
-新建的文件
+**新建的文件**
 plaza.html — 广场主页模板，展示所有公开笔记卡片（作者、标签、摘要、评论数），支持搜索plaza_note.html — 广场笔记详情页，Markdown 渲染 + 评论区 + 发表评论表单 + 删除自己的评论
 启动方式：python app.py，首次启动会自动创建 comment 表
+
+
+4.11 15：16
+完成回收站、历史版本与注册时的密码校验
+剩余多条件筛选、AI功能
+计划进行界面美化

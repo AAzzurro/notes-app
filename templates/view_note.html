@@ -7,6 +7,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">{{ note.title }}</h4>
                 <div>
+                    <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary me-1">历史版本</a>
                     <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">编辑</a>
                     <a href="/notes/{{ note.id }}/export" class="btn btn-sm btn-outline-secondary me-1">导出md</a>
                     <a href="/notes/{{ note.id }}/toggle_public" class="btn btn-sm btn-outline-{% if note.is_public %}warning{% else %}success{% endif %} me-1">
@@ -29,7 +30,7 @@
             </div>
             {% endif %}
             <hr>
-            <div id="content"></div>
+            <div id="content" data-raw="{{ note.content | e }}"></div>
         </div>
     </div>
 </div>
@@ -37,7 +38,8 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    const raw = {{ note.content | tojson }};
-    document.getElementById('content').innerHTML = marked.parse(raw);
+    const el = document.getElementById('content');
+    const raw = el.getAttribute('data-raw');
+    el.innerHTML = marked.parse(raw);
 </script>
 {% endblock %}

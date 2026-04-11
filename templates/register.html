@@ -12,7 +12,8 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">密码</label>
-                    <input type="password" name="password" class="form-control">
+                    <input type="password" name="password" class="form-control" minlength="8" required>
+                    <div class="form-text">密码不少于8位，需同时包含字母和数字</div>
                 </div>
                 {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
