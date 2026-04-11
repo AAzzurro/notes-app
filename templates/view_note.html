@@ -25,6 +25,7 @@
             {% if note.is_public %}
             <div class="alert alert-success py-2">
                 分享链接：<a href="/share/{{ note.id }}">{{ request.host_url }}share/{{ note.id }}</a>
+                <a href="/plaza/{{ note.id }}" class="btn btn-sm btn-outline-primary ms-2">在广场中查看</a>
             </div>
             {% endif %}
             <hr>

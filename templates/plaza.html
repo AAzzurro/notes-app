@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}笔记广场{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="mb-4">
+            <h5 class="mb-0">🌐 笔记广场</h5>
+            <small class="text-muted">使用顶部搜索框，选择「笔记广场」范围来搜索</small>
+        </div>
+        {% for note in notes %}
+        <div class="card mb-3 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5><a href="/plaza/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
+                    <small class="text-muted">
+                        ✍️ <a href="#" class="text-decoration-none">{{ note.author.username }}</a>
+                        &nbsp;·&nbsp; {{ note.created_at | local_time }}
+                    </small>
+                    <div class="mt-2">
+                        {% for tag in note.tags %}
+                        <span class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-2 text-muted small">
+                        {{ note.content[:120] }}{% if note.content|length > 120 %}...{% endif %}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-secondary">💬 {{ note.comments|length }}</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card p-4 text-center text-muted">
+            <p>广场上还没有公开笔记，快去设一篇公开笔记吧！</p>
+            <a href="/" class="btn btn-dark">回到我的笔记</a>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h6 class="mb-2">💡 关于笔记广场</h6>
+            <p class="small text-muted mb-0">
+                笔记广场展示所有用户设为公开的笔记。你可以将笔记设为公开来分享给其他用户，也可以对公开笔记发表评论。
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

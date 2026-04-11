@@ -79,7 +79,15 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     notes    = db.relationship('Note', backref='author', lazy=True)
+    comments = db.relationship('Comment', backref='author', lazy=True)
 
+
+class Comment(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    content    = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    note_id    = db.Column(db.Integer, db.ForeignKey('note.id'), nullable=False)
 
 class Note(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -91,6 +99,7 @@ class Note(db.Model):
     folder_id  = db.Column(db.Integer, db.ForeignKey('folder.id'), nullable=True)
     is_public  = db.Column(db.Boolean, default=False)
     tags       = db.relationship('Tag', secondary=note_tags, backref='notes')
+    comments   = db.relationship('Comment', backref='note', lazy=True, order_by='Comment.created_at.desc()')
 
 # 辅助函数
 
@@ -306,16 +315,37 @@ def share_note(note_id):
 @app.route('/search')
 @login_required
 def search():
-    query = request.args.get('q', '').strip()
-    notes = []
+    query    = request.args.get('q', '').strip()
+    scope    = request.args.get('scope', 'mine')
+    folder_id = request.args.get('folder_id')
+    tag_id    = request.args.get('tag_id')
+
+    if scope == 'plaza':
+        # 广场搜索直接重定向到广场页
+        return redirect(url_for('plaza', q=query))
+
+    q = Note.query.filter_by(user_id=current_user.id)
     if query:
-        notes = (Note.query
-                 .filter(
-                     Note.user_id == current_user.id,
-                     Note.title.contains(query) | Note.content.contains(query),
-                 )
-                 .order_by(Note.created_at.desc()).all())
-    return render_template('search.html', notes=notes, query=query)
+        q = q.filter(Note.title.contains(query) | Note.content.contains(query))
+    if folder_id:
+        q = q.filter_by(folder_id=folder_id)
+    if tag_id:
+        tag = db.session.get(Tag, int(tag_id))
+        if tag:
+            q = q.filter(Note.tags.contains(tag))
+    notes = q.order_by(Note.created_at.desc()).all()
+
+    folders = Folder.query.filter_by(user_id=current_user.id).all()
+    tags = (Tag.query
+            .join(note_tags)
+            .join(Note)
+            .filter(Note.user_id == current_user.id)
+            .distinct().all())
+
+    return render_template('search.html', notes=notes, query=query,
+                           scope=scope, folders=folders, tags=tags,
+                           current_folder_id=int(folder_id) if folder_id else None,
+                           current_tag_id=int(tag_id) if tag_id else None)
 
 # 导入 / 导出
 
@@ -366,6 +396,59 @@ def delete_folder(folder_id):
     db.session.delete(folder)
     db.session.commit()
     return redirect(url_for('index'))
+
+# 笔记广场
+
+@app.route('/plaza')
+@login_required
+def plaza():
+    q = request.args.get('q', '').strip()
+    query = Note.query.filter_by(is_public=True)
+    if q:
+        query = query.filter(Note.title.contains(q) | Note.content.contains(q))
+    notes = query.order_by(Note.created_at.desc()).all()
+    return render_template('plaza.html', notes=notes, q=q)
+
+
+@app.route('/plaza/<int:note_id>')
+@login_required
+def plaza_note(note_id):
+    note = get_or_404(Note, note_id)
+    if not note.is_public:
+        from flask import abort
+        abort(403)
+    return render_template('plaza_note.html', note=note)
+
+
+@app.route('/plaza/<int:note_id>/comment', methods=['POST'])
+@login_required
+def add_comment(note_id):
+    note = get_or_404(Note, note_id)
+    if not note.is_public:
+        from flask import abort
+        abort(403)
+    content = request.form.get('content', '').strip()
+    if content:
+        comment = Comment(content=content, user_id=current_user.id, note_id=note.id)
+        db.session.add(comment)
+        db.session.commit()
+    return redirect(url_for('plaza_note', note_id=note.id))
+
+
+@app.route('/comments/<int:comment_id>/delete', methods=['POST'])
+@login_required
+def delete_comment(comment_id):
+    comment = db.session.get(Comment, comment_id)
+    if not comment:
+        from flask import abort
+        abort(404)
+    if comment.user_id != current_user.id:
+        from flask import abort
+        abort(403)
+    note_id = comment.note_id
+    db.session.delete(comment)
+    db.session.commit()
+    return redirect(url_for('plaza_note', note_id=note_id))
 
 # 启动 
 

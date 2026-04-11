@@ -1,16 +1,42 @@
 {% extends 'base.html' %}
 {% block title %}搜索{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
+<div class="row">
     <div class="col-md-8">
         <form method="GET" action="/search" class="mb-4">
             <div class="input-group">
+                <select name="scope" class="form-select" style="width:auto" onchange="this.form.action=this.value==='plaza'?'/plaza':'/search'">
+                    <option value="mine" {% if scope != 'plaza' %}selected{% endif %}>我的笔记</option>
+                    <option value="plaza" {% if scope == 'plaza' %}selected{% endif %}>笔记广场</option>
+                </select>
                 <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="搜索笔记标题或内容...">
                 <button type="submit" class="btn btn-dark">搜索</button>
             </div>
         </form>
-        {% if query %}
-        <p class="text-muted">「{{ query }}」共找到 {{ notes|length }} 篇笔记</p>
+
+        <!-- 筛选器 -->
+        <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+            <small class="text-muted">筛选：</small>
+            <form method="GET" action="/search" class="d-flex gap-2 flex-wrap" id="filterForm">
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="scope" value="mine">
+                <select name="folder_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                    <option value="">全部文件夹</option>
+                    {% for folder in folders %}
+                    <option value="{{ folder.id }}" {% if current_folder_id == folder.id %}selected{% endif %}>📁 {{ folder.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="tag_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                    <option value="">全部标签</option>
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}" {% if current_tag_id == tag.id %}selected{% endif %}>🏷️ {{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        {% if query or current_folder_id or current_tag_id %}
+        <p class="text-muted">共找到 {{ notes|length }} 篇笔记</p>
         {% for note in notes %}
         <div class="card mb-3 p-3">
             <h5>
@@ -19,6 +45,9 @@
                 </a>
             </h5>
             <small class="text-muted">{{ note.created_at | local_time }}</small>
+            {% if note.folder %}
+            <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
+            {% endif %}
             <div class="mt-2 text-muted small">
                 {{ note.content | preview(query) | safe }}
             </div>
@@ -32,6 +61,15 @@
         <div class="card p-4 text-center text-muted">没有找到相关笔记</div>
         {% endfor %}
         {% endif %}
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h6 class="mb-2">💡 搜索提示</h6>
+            <p class="small text-muted mb-0">
+                使用顶部搜索框切换「我的笔记」和「笔记广场」搜索范围。
+                在「我的笔记」模式下，可通过下拉框按文件夹和标签组合筛选。
+            </p>
+        </div>
     </div>
 </div>
 {% endblock %}
