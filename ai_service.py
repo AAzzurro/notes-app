@@ -8,8 +8,11 @@ import requests
 import json
 
 # DeepSeek API配置
-# 建议通过环境变量设置API密钥，或直接在此处填写
-DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', 'sk-f64e510b72954a77b77be9bb7dcc4f0a')
+# 请通过环境变量 DEEPSEEK_API_KEY 设置你的API密钥
+# 示例: export DEEPSEEK_API_KEY=sk-xxxxxx (Linux/Mac)
+#       set DEEPSEEK_API_KEY=sk-xxxxxx (Windows CMD)
+#       $env:DEEPSEEK_API_KEY="sk-xxxxxx" (Windows PowerShell)
+DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
 DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
 
 

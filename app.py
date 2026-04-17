@@ -4,6 +4,10 @@ import json
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
+# 加载环境变量（从 .env 文件）
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, Response, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
