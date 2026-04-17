@@ -5,14 +5,27 @@
     <div class="col-md-8">
         <div class="card p-4">
             <h4 class="mb-4">写新笔记</h4>
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
             <form method="POST" id="noteForm">
                 <div class="mb-3">
                     <label class="form-label">标题</label>
-                    <input type="text" name="title" class="form-control" required>
+                    <input type="text" name="title" id="titleInput" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">标签</label>
-                    <input type="text" name="tags" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                    <div class="input-group">
+                        <input type="text" name="tags" id="tagsInput" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                        <button type="button" class="btn btn-outline-primary" id="btnRecommendTags">
+                            🏷️ AI推荐
+                        </button>
+                    </div>
+                    <div id="recommendedTags" class="mt-2 d-none">
+                        <small class="text-muted">AI推荐标签：</small>
+                        <div id="tagList" class="d-inline"></div>
+                    </div>
+                    <div id="tagError" class="text-danger small mt-1 d-none"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">内容</label>
@@ -28,13 +41,20 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-dark">保存</button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-dark">保存</button>
+                    <span id="saveHint" class="text-muted small align-self-center d-none">
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        AI正在推荐标签...
+                    </span>
+                </div>
             </form>
         </div>
     </div>
 </div>
 {% endblock %}
 {% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
     const easyMDE = new EasyMDE({
@@ -43,8 +63,86 @@
         autosave: { enabled: true, uniqueId: 'new_note' },
         placeholder: '用Markdown写笔记...',
     });
+    
     document.getElementById('noteForm').addEventListener('submit', function() {
         document.getElementById('hiddenContent').value = easyMDE.value();
     });
+    
+    // AI标签推荐功能
+    document.getElementById('btnRecommendTags').addEventListener('click', async function() {
+        const title = document.getElementById('titleInput').value.trim();
+        const content = easyMDE.value().trim();
+        
+        if (!content) {
+            showError('请先填写笔记内容');
+            return;
+        }
+        
+        const btn = this;
+        const saveHint = document.getElementById('saveHint');
+        const recommendedTags = document.getElementById('recommendedTags');
+        const tagError = document.getElementById('tagError');
+        
+        btn.disabled = true;
+        saveHint.classList.remove('d-none');
+        tagError.classList.add('d-none');
+        
+        try {
+            const response = await fetch('/api/ai-recommend-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: title, content: content })
+            });
+            const data = await response.json();
+            
+            if (data.success && data.tags.length > 0) {
+                displayRecommendedTags(data.tags);
+            } else {
+                showError(data.error || '未能生成推荐标签');
+            }
+        } catch (error) {
+            showError('网络错误，请稍后重试');
+        } finally {
+            btn.disabled = false;
+            saveHint.classList.add('d-none');
+        }
+    });
+    
+    function displayRecommendedTags(tags) {
+        const tagList = document.getElementById('tagList');
+        const recommendedTags = document.getElementById('recommendedTags');
+        const tagsInput = document.getElementById('tagsInput');
+        
+        tagList.innerHTML = '';
+        tags.forEach(function(tag) {
+            const badge = document.createElement('a');
+            badge.href = '#';
+            badge.className = 'tag-badge tag-color-' + (tag.length % 8) + ' me-1';
+            badge.textContent = tag;
+            badge.onclick = function(e) {
+                e.preventDefault();
+                // 添加标签到输入框
+                let currentTags = tagsInput.value.trim();
+                if (currentTags) {
+                    // 检查是否已存在
+                    const existingTags = currentTags.split(',').map(t => t.trim().toLowerCase());
+                    if (!existingTags.includes(tag.toLowerCase())) {
+                        tagsInput.value = currentTags + ', ' + tag;
+                    }
+                } else {
+                    tagsInput.value = tag;
+                }
+            };
+            tagList.appendChild(badge);
+        });
+        
+        recommendedTags.classList.remove('d-none');
+    }
+    
+    function showError(message) {
+        const tagError = document.getElementById('tagError');
+        tagError.textContent = message;
+        tagError.classList.remove('d-none');
+    }
 </script>
 {% endblock %}

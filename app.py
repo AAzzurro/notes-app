@@ -4,7 +4,7 @@ import json
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
-from flask import Flask, Response, render_template, request, redirect, url_for
+from flask import Flask, Response, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -12,6 +12,9 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+# AI服务模块
+import ai_service
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-123'
@@ -275,6 +278,65 @@ def view_note(note_id):
     note = get_or_404(Note, note_id)
     return render_template('view_note.html', note=note)
 
+
+# ==================== AI 功能路由 ====================
+
+@app.route('/api/notes/<int:note_id>/ai-summary', methods=['POST'])
+@login_required
+def ai_summary(note_id):
+    """AI摘要：一键生成当前笔记核心考点"""
+    note = get_or_404(Note, note_id)
+    try:
+        summary = ai_service.generate_summary(note.title, note.content)
+        return jsonify({'success': True, 'summary': summary})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/notes/<int:note_id>/ai-chat', methods=['POST'])
+@login_required
+def ai_chat(note_id):
+    """AI问答：基于当前笔记内容对话"""
+    note = get_or_404(Note, note_id)
+    data = request.get_json()
+    question = data.get('question', '').strip()
+    chat_history = data.get('history', [])
+    
+    if not question:
+        return jsonify({'success': False, 'error': '问题不能为空'}), 400
+    
+    try:
+        answer = ai_service.chat_with_note(note.title, note.content, question, chat_history)
+        return jsonify({'success': True, 'answer': answer})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/ai-recommend-tags', methods=['POST'])
+@login_required
+def ai_recommend_tags():
+    """AI智能标签推荐：根据内容推荐标签"""
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    
+    if not content:
+        return jsonify({'success': False, 'error': '内容不能为空'}), 400
+    
+    try:
+        tags = ai_service.recommend_tags(title, content)
+        return jsonify({'success': True, 'tags': tags})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== 笔记编辑路由 ====================
 
 @app.route('/notes/<int:note_id>/edit', methods=['GET', 'POST'])
 @login_required

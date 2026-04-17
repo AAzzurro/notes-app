@@ -8,19 +8,25 @@
             <form method="POST" id="noteForm">
                 <div class="mb-3">
                     <label class="form-label">标题</label>
-                    <input type="text" name="title" value="{{ note.title }}" class="form-control" required>
+                    <input type="text" name="title" id="titleInput" value="{{ note.title }}" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">标签</label>
-                    <input type="text" name="tags" value="{{ note.tags | map(attribute='name') | join(',') }}" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                    <div class="input-group">
+                        <input type="text" name="tags" id="tagsInput" value="{{ note.tags | map(attribute='name') | join(',') }}" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
+                        <button type="button" class="btn btn-outline-primary" id="btnRecommendTags">
+                            🏷️ AI推荐
+                        </button>
+                    </div>
+                    <div id="recommendedTags" class="mt-2 d-none">
+                        <small class="text-muted">AI推荐标签：</small>
+                        <div id="tagList" class="d-inline"></div>
+                    </div>
+                    <div id="tagError" class="text-danger small mt-1 d-none"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">内容</label>
                     <textarea id="editor" name="content">{{ note.content }}</textarea>
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-dark">保存修改</button>
-                    <a href="/notes/{{ note.id }}" class="btn btn-outline-secondary">取消</a>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">文件夹（可选）</label>
@@ -32,6 +38,14 @@
                         </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="submit" class="btn btn-dark">保存修改</button>
+                    <a href="/notes/{{ note.id }}" class="btn btn-outline-secondary">取消</a>
+                    <span id="saveHint" class="text-muted small d-none">
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        AI正在推荐标签...
+                    </span>
                 </div>
             </form>
         </div>
@@ -47,5 +61,81 @@
         spellChecker: false,
         placeholder: '用Markdown写笔记...',
     });
+    
+    // AI标签推荐功能
+    document.getElementById('btnRecommendTags').addEventListener('click', async function() {
+        const title = document.getElementById('titleInput').value.trim();
+        const content = easyMDE.value().trim();
+        
+        if (!content) {
+            showError('请先填写笔记内容');
+            return;
+        }
+        
+        const btn = this;
+        const saveHint = document.getElementById('saveHint');
+        const tagError = document.getElementById('tagError');
+        
+        btn.disabled = true;
+        saveHint.classList.remove('d-none');
+        tagError.classList.add('d-none');
+        
+        try {
+            const response = await fetch('/api/ai-recommend-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: title, content: content })
+            });
+            const data = await response.json();
+            
+            if (data.success && data.tags.length > 0) {
+                displayRecommendedTags(data.tags);
+            } else {
+                showError(data.error || '未能生成推荐标签');
+            }
+        } catch (error) {
+            showError('网络错误，请稍后重试');
+        } finally {
+            btn.disabled = false;
+            saveHint.classList.add('d-none');
+        }
+    });
+    
+    function displayRecommendedTags(tags) {
+        const tagList = document.getElementById('tagList');
+        const recommendedTags = document.getElementById('recommendedTags');
+        const tagsInput = document.getElementById('tagsInput');
+        
+        tagList.innerHTML = '';
+        tags.forEach(function(tag) {
+            const badge = document.createElement('a');
+            badge.href = '#';
+            badge.className = 'tag-badge tag-color-' + (tag.length % 8) + ' me-1';
+            badge.textContent = tag;
+            badge.onclick = function(e) {
+                e.preventDefault();
+                // 添加标签到输入框
+                let currentTags = tagsInput.value.trim();
+                if (currentTags) {
+                    // 检查是否已存在
+                    const existingTags = currentTags.split(',').map(t => t.trim().toLowerCase());
+                    if (!existingTags.includes(tag.toLowerCase())) {
+                        tagsInput.value = currentTags + ', ' + tag;
+                    }
+                } else {
+                    tagsInput.value = tag;
+                }
+            };
+            tagList.appendChild(badge);
+        });
+        
+        recommendedTags.classList.remove('d-none');
+    }
+    
+    function showError(message) {
+        const tagError = document.getElementById('tagError');
+        tagError.textContent = message;
+        tagError.classList.remove('d-none');
+    }
 </script>
 {% endblock %}
