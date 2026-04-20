@@ -6,9 +6,11 @@
         <form method="GET" action="/search" id="searchForm" class="mb-4">
             <div class="input-group">
                 <div class="btn-group" role="group">
-                    <input type="radio" class="btn-check" name="scope" id="search-scope-mine" value="mine" autocomplete="off" {% if scope != 'plaza' %}checked{% endif %}>
+                    <input type="radio" class="btn-check" name="scope" id="search-scope-mine" value="mine"
+                        autocomplete="off" {% if scope !='plaza' %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="search-scope-mine">我的笔记</label>
-                    <input type="radio" class="btn-check" name="scope" id="search-scope-plaza" value="plaza" autocomplete="off" {% if scope == 'plaza' %}checked{% endif %}>
+                    <input type="radio" class="btn-check" name="scope" id="search-scope-plaza" value="plaza"
+                        autocomplete="off" {% if scope=='plaza' %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="search-scope-plaza">笔记广场</label>
                 </div>
                 <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="搜索笔记标题或内容...">
@@ -22,16 +24,20 @@
             <form method="GET" action="/search" class="d-flex gap-2 flex-wrap" id="filterForm">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="scope" value="mine">
-                <select name="folder_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                <select name="folder_id" class="form-select form-select-sm" style="width:auto"
+                    onchange="this.form.submit()">
                     <option value="">全部文件夹</option>
                     {% for folder in folders %}
-                    <option value="{{ folder.id }}" {% if current_folder_id == folder.id %}selected{% endif %}>📁 {{ folder.name }}</option>
+                    <option value="{{ folder.id }}" {% if current_folder_id==folder.id %}selected{% endif %}>📁 {{
+                        folder.name }}</option>
                     {% endfor %}
                 </select>
-                <select name="tag_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                <select name="tag_id" class="form-select form-select-sm" style="width:auto"
+                    onchange="this.form.submit()">
                     <option value="">全部标签</option>
                     {% for tag in tags %}
-                    <option value="{{ tag.id }}" {% if current_tag_id == tag.id %}selected{% endif %}>🏷️ {{ tag.name }}</option>
+                    <option value="{{ tag.id }}" {% if current_tag_id==tag.id %}selected{% endif %}>🏷️ {{ tag.name }}
+                    </option>
                     {% endfor %}
                 </select>
             </form>
@@ -76,9 +82,13 @@
 </div>
 {% block scripts %}
 <script>
-    document.querySelectorAll('#searchForm input[name="scope"]').forEach(function(radio) {
-        radio.addEventListener('change', function() {
-            document.getElementById('searchForm').action = this.value === 'plaza' ? '/plaza' : '/search';
+    document.querySelectorAll('#searchForm input[name="scope"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (this.value === 'plaza') {
+                window.location.href = '/plaza';
+            } else {
+                window.location.href = '/';
+            }
         });
     });
 </script>

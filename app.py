@@ -544,6 +544,17 @@ def delete_comment(comment_id):
     db.session.commit()
     return redirect(url_for('plaza_note', note_id=note_id))
 
+# 标签
+
+@app.route('/tags/<int:tag_id>')
+@login_required
+def view_tag(tag_id):
+    tag = get_or_404(Tag, tag_id)
+    notes = Note.query.filter_by(user_id=current_user.id, is_deleted=False)\
+                     .filter(Note.tags.contains(tag))\
+                     .order_by(Note.created_at.desc()).all()
+    return render_template('tag.html', tag=tag, notes=notes)
+
 # 回收站
 
 @app.route('/trash')

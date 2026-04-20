@@ -12,7 +12,7 @@
                     <small class="text-muted">{{ note.created_at | local_time }}</small>
                     <div class="mt-2">
                         {% for t in note.tags %}
-                        <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
+                        <a href="/tags/{{ t.id }}" class="tag-badge tag-color-{{ t.id % 8 }}">{{ t.name }}</a>
                         {% endfor %}
                     </div>
                 </div>

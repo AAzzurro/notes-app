@@ -18,7 +18,71 @@
                 {% endfor %}
             </div>
             <hr>
+
+            <!-- AI功能按钮区 -->
+            <div class="mb-3 d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-primary" id="btnAISummary">
+                    🤖 AI摘要
+                </button>
+                <button type="button" class="btn btn-sm btn-info text-white" id="btnAIChat">
+                    💬 AI问答
+                </button>
+            </div>
+
             <div id="content" data-raw="{{ note.content | e }}"></div>
+        </div>
+
+        <!-- AI摘要模态框 -->
+        <div class="modal fade" id="summaryModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🤖 AI摘要 - 核心考点</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="summaryLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-2 text-muted">AI正在分析笔记内容...</p>
+                        </div>
+                        <div id="summaryError" class="alert alert-danger d-none"></div>
+                        <div id="summaryContent" class="d-none">
+                            <div id="summaryText"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI问答模态框 -->
+        <div class="modal fade" id="chatModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">💬 AI问答 - 基于笔记内容</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                        <div id="chatMessages" class="mb-3">
+                            <div class="alert alert-info">
+                                💡 你可以向AI提问关于这篇笔记的任何问题，AI会基于笔记内容为你解答。
+                            </div>
+                        </div>
+                        <div id="chatError" class="alert alert-danger d-none"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="input-group">
+                            <input type="text" id="chatInput" class="form-control" placeholder="输入你的问题..."
+                                maxlength="500">
+                            <button class="btn btn-primary" type="button" id="btnSendChat">
+                                发送
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 评论区 -->
@@ -42,7 +106,8 @@
                         <small class="text-muted ms-2">{{ comment.created_at | local_time }}</small>
                     </div>
                     {% if comment.user_id == current_user.id %}
-                    <form method="POST" action="/comments/{{ comment.id }}/delete" onsubmit="return confirm('确定删除这条评论？')">
+                    <form method="POST" action="/comments/{{ comment.id }}/delete"
+                        onsubmit="return confirm('确定删除这条评论？')">
                         <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
                     </form>
                     {% endif %}
@@ -59,8 +124,119 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+    // 渲染笔记内容
     const el = document.getElementById('content');
     const raw = el.getAttribute('data-raw');
     el.innerHTML = marked.parse(raw);
+
+    const noteId = {{ note.id }};
+
+    // ========== AI摘要功能 ==========
+    document.getElementById('btnAISummary').addEventListener('click', async function () {
+        const modal = new bootstrap.Modal(document.getElementById('summaryModal'));
+        modal.show();
+
+        document.getElementById('summaryLoading').classList.remove('d-none');
+        document.getElementById('summaryError').classList.add('d-none');
+        document.getElementById('summaryContent').classList.add('d-none');
+
+        try {
+            const response = await fetch(`/api/notes/${noteId}/ai-summary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            document.getElementById('summaryLoading').classList.add('d-none');
+
+            if (data.success) {
+                document.getElementById('summaryText').innerHTML = marked.parse(data.summary);
+                document.getElementById('summaryContent').classList.remove('d-none');
+            } else {
+                document.getElementById('summaryError').textContent = data.error || '生成摘要失败';
+                document.getElementById('summaryError').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('summaryLoading').classList.add('d-none');
+            document.getElementById('summaryError').textContent = '网络错误，请稍后重试';
+            document.getElementById('summaryError').classList.remove('d-none');
+        }
+    });
+
+    // ========== AI问答功能 ==========
+    let chatHistory = [];
+
+    document.getElementById('btnAIChat').addEventListener('click', function () {
+        const modal = new bootstrap.Modal(document.getElementById('chatModal'));
+        modal.show();
+        document.getElementById('chatInput').focus();
+    });
+
+    async function sendChat() {
+        const input = document.getElementById('chatInput');
+        const question = input.value.trim();
+        if (!question) return;
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatError = document.getElementById('chatError');
+        chatError.classList.add('d-none');
+
+        // 添加用户消息
+        const userMsgDiv = document.createElement('div');
+        userMsgDiv.className = 'alert alert-primary mb-2';
+        userMsgDiv.innerHTML = `<strong>你：</strong>${escapeHtml(question)}`;
+        chatMessages.appendChild(userMsgDiv);
+
+        input.value = '';
+
+        // 添加AI正在输入的提示
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'alert alert-secondary mb-2';
+        loadingDiv.innerHTML = '<strong>AI：</strong><span class="text-muted">正在思考...</span>';
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const response = await fetch(`/api/notes/${noteId}/ai-chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: question,
+                    history: chatHistory
+                })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                loadingDiv.innerHTML = `<strong>AI：</strong>${marked.parse(data.answer)}`;
+                // 更新对话历史
+                chatHistory.push({ role: 'user', content: question });
+                chatHistory.push({ role: 'assistant', content: data.answer });
+                // 保留最近10轮对话
+                if (chatHistory.length > 20) {
+                    chatHistory = chatHistory.slice(-20);
+                }
+            } else {
+                loadingDiv.innerHTML = `<strong>AI：</strong><span class="text-danger">${escapeHtml(data.error || '回答失败')}</span>`;
+            }
+        } catch (error) {
+            loadingDiv.innerHTML = '<strong>AI：</strong><span class="text-danger">网络错误，请稍后重试</span>';
+        }
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    document.getElementById('btnSendChat').addEventListener('click', sendChat);
+    document.getElementById('chatInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendChat();
+        }
+    });
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 </script>
 {% endblock %}
