@@ -28,7 +28,7 @@
                         <button type="submit" class="btn btn-sm btn-outline-success">恢复</button>
                     </form>
                     <form method="POST" action="/trash/{{ note.id }}/permanent_delete"
-                          onsubmit="return confirm('永久删除后将无法恢复，确定继续？')">
+                          data-confirm="永久删除后将无法恢复，确定继续吗？">
                         <button type="submit" class="btn btn-sm btn-outline-danger">永久删除</button>
                     </form>
                 </div>

@@ -18,7 +18,11 @@
                     <div class="input-group">
                         <input type="text" name="tags" id="tagsInput" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
                         <button type="button" class="btn btn-outline-primary" id="btnRecommendTags">
-                            🏷️ AI推荐
+                            <span id="btnRecommendIcon">🏷️ AI推荐</span>
+                            <span id="btnRecommendLoading" class="d-none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                生成中...
+                            </span>
                         </button>
                     </div>
                     <div id="recommendedTags" class="mt-2 d-none">
@@ -43,6 +47,8 @@
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-dark">保存</button>
+                    <a href="/" class="btn btn-outline-secondary"
+                       data-confirm="确定退出编辑？未保存的内容将丢失。">退出</a>
                     <span id="saveHint" class="text-muted small align-self-center d-none">
                         <span class="spinner-border spinner-border-sm" role="status"></span>
                         AI正在推荐标签...
@@ -82,10 +88,19 @@
         const saveHint = document.getElementById('saveHint');
         const recommendedTags = document.getElementById('recommendedTags');
         const tagError = document.getElementById('tagError');
+        const btnIcon = document.getElementById('btnRecommendIcon');
+        const btnLoading = document.getElementById('btnRecommendLoading');
         
         btn.disabled = true;
+        btnIcon.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
         saveHint.classList.remove('d-none');
         tagError.classList.add('d-none');
+        
+        // 在推荐区显示占位提示
+        const tagList = document.getElementById('tagList');
+        tagList.innerHTML = '<span class="text-muted small"><span class="spinner-border spinner-border-sm" role="status"></span> AI 正在分析笔记内容...</span>';
+        recommendedTags.classList.remove('d-none');
         
         try {
             const response = await fetch('/api/ai-recommend-tags', {
@@ -98,12 +113,16 @@
             if (data.success && data.tags.length > 0) {
                 displayRecommendedTags(data.tags);
             } else {
+                recommendedTags.classList.add('d-none');
                 showError(data.error || '未能生成推荐标签');
             }
         } catch (error) {
+            recommendedTags.classList.add('d-none');
             showError('网络错误，请稍后重试');
         } finally {
             btn.disabled = false;
+            btnIcon.classList.remove('d-none');
+            btnLoading.classList.add('d-none');
             saveHint.classList.add('d-none');
         }
     });

@@ -16,7 +16,9 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
 DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
 
 
-def call_deepseek_api(system_prompt: str, user_message: str, max_tokens: int = 1000) -> str:
+def call_deepseek_api(system_prompt: str, user_message: str, max_tokens: int = 1000,
+                     temperature: float = 0.7, timeout: int = 60,
+                     response_format: dict = None) -> str:
     """
     调用DeepSeek API
     
@@ -24,6 +26,9 @@ def call_deepseek_api(system_prompt: str, user_message: str, max_tokens: int = 1
         system_prompt: 系统提示词
         user_message: 用户消息
         max_tokens: 最大返回token数
+        temperature: 采样温度，越低越快越稳定
+        timeout: 请求超时时间（秒）
+        response_format: 可选的响应格式（如 {'type': 'json_object'}）
         
     Returns:
         AI生成的回复内容
@@ -47,15 +52,18 @@ def call_deepseek_api(system_prompt: str, user_message: str, max_tokens: int = 1
             {'role': 'user', 'content': user_message}
         ],
         'max_tokens': max_tokens,
-        'temperature': 0.7
+        'temperature': temperature,
+        'stream': False,
     }
+    if response_format:
+        payload['response_format'] = response_format
     
     try:
         response = requests.post(
             DEEPSEEK_API_URL,
             headers=headers,
             json=payload,
-            timeout=60
+            timeout=timeout
         )
         response.raise_for_status()
         result = response.json()
@@ -170,57 +178,54 @@ def chat_with_note(note_title: str, note_content: str, question: str, chat_histo
 
 def recommend_tags(note_title: str, note_content: str) -> list:
     """
-    智能推荐笔记标签
-    
+    智能推荐笔记标签（速度优化版）
+
     Args:
         note_title: 笔记标题
         note_content: 笔记内容
-        
+
     Returns:
         推荐的标签列表
     """
-    system_prompt = """你是一位专业的笔记标签推荐助手。你的任务是根据笔记内容推荐合适的标签。
+    # 精简 system prompt，减少输入 token 以加快推理
+    system_prompt = (
+        '你是笔记标签推荐助手。根据标题和内容，返回3-5个1-4字的简洁标签，'
+        '覆盖学科、知识点或主题。只输出JSON对象，格式：{"tags":["标签1","标签2","标签3"]}，不要任何其他文字。'
+    )
 
-请遵循以下规则：
-1. 推荐3-5个最合适的标签
-2. 标签应该简洁明了，通常是1-4个字
-3. 标签应该反映笔记的核心主题、学科领域或知识点
-4. 常见的标签类型包括：学科名（如"操作系统"、"数据结构"）、知识点（如"进程"、"排序算法"）、难度级别（如"基础"、"进阶"）
+    # 裁剪内容长度，内容越短响应越快（由 2000 -> 1000）
+    trimmed = note_content[:1000]
+    user_message = f'标题：{note_title}\n内容：{trimmed}'
 
-请以JSON数组格式返回标签，例如：["操作系统", "进程管理", "调度算法"]"""
-    
-    user_message = f"""请为以下笔记推荐合适的标签：
-
-标题：{note_title}
-
-内容：
-{note_content[:2000]}  # 限制长度避免超出token限制
-
-请直接返回JSON数组格式的标签列表。"""
-    
+    result = ''
     try:
-        result = call_deepseek_api(system_prompt, user_message, max_tokens=200)
-        # 尝试解析JSON
-        # 处理可能的markdown代码块格式
-        result = result.strip()
+        # 低温度 + 小 max_tokens + JSON 模式，大幅缩短生成耗时
+        result = call_deepseek_api(
+            system_prompt,
+            user_message,
+            max_tokens=120,
+            temperature=0.2,
+            timeout=30,
+            response_format={'type': 'json_object'},
+        )
+        result = (result or '').strip()
         if result.startswith('```'):
-            # 移除markdown代码块标记
             lines = result.split('\n')
             result = '\n'.join(lines[1:-1] if lines[-1].startswith('```') else lines[1:])
-        
-        tags = json.loads(result)
+
+        data = json.loads(result)
+        tags = data.get('tags', []) if isinstance(data, dict) else data
         if isinstance(tags, list):
             return [tag.strip() for tag in tags if isinstance(tag, str) and tag.strip()]
         return []
     except (json.JSONDecodeError, Exception):
-        # 如果JSON解析失败，尝试从文本中提取标签
-        # 查找方括号内的内容
+        # 回退：从返回文本中提取JSON数组
         import re
         match = re.search(r'\[.*?\]', result, re.DOTALL)
         if match:
             try:
                 tags = json.loads(match.group())
                 return [tag.strip() for tag in tags if isinstance(tag, str) and tag.strip()]
-            except:
+            except Exception:
                 pass
         return []

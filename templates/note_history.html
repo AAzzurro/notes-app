@@ -23,7 +23,7 @@
                 <div class="d-flex gap-1">
                     <a href="/notes/{{ note.id }}/history/{{ v.id }}" class="btn btn-sm btn-outline-primary">查看</a>
                     <form method="POST" action="/notes/{{ note.id }}/history/{{ v.id }}/rollback"
-                          onsubmit="return confirm('回滚到此版本？当前内容将保存为新版本。')">
+                          data-confirm="回滚到此版本？当前内容将保存为新版本。">
                         <button type="submit" class="btn btn-sm btn-outline-warning">回滚</button>
                     </form>
                 </div>

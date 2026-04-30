@@ -7,6 +7,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">{{ note.title }}</h4>
                 <div>
+                    <a href="/" class="btn btn-sm btn-outline-secondary me-1">返回主页</a>
                     <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary me-1">历史版本</a>
                     <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">编辑</a>
                     <a href="/notes/{{ note.id }}/export" class="btn btn-sm btn-outline-secondary me-1">导出md</a>
@@ -14,7 +15,7 @@
                         {% if note.is_public %}设为私有{% else %}设为公开{% endif %}
                     </a>
                     <a href="/notes/{{ note.id }}/delete" class="btn btn-sm btn-outline-danger"
-                       onclick="return confirm('确定删除？')">删除</a>
+                       data-confirm="确定删除这篇笔记吗？">删除</a>
                 </div>
             </div>
             <div class="mb-3">

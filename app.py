@@ -481,6 +481,20 @@ def new_folder():
     return redirect(url_for('index'))
 
 
+@app.route('/folders/<int:folder_id>')
+@login_required
+def view_folder(folder_id):
+    folder = get_or_404(Folder, folder_id)
+    if folder.user_id != current_user.id:
+        from flask import abort
+        abort(403)
+    notes = (Note.query
+             .filter_by(user_id=current_user.id, folder_id=folder.id, is_deleted=False)
+             .order_by(Note.created_at.desc())
+             .all())
+    return render_template('folder.html', folder=folder, notes=notes)
+
+
 @app.route('/folders/<int:folder_id>/delete')
 @login_required
 def delete_folder(folder_id):

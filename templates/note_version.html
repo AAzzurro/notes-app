@@ -8,7 +8,7 @@
                 <h4 class="mb-0">{{ version.title }}</h4>
                 <div class="d-flex gap-1">
                     <form method="POST" action="/notes/{{ note.id }}/history/{{ version.id }}/rollback"
-                          onsubmit="return confirm('回滚到此版本？当前内容将保存为新版本。')">
+                          data-confirm="回滚到此版本？当前内容将保存为新版本。">
                         <button type="submit" class="btn btn-sm btn-outline-warning">回滚到此版本</button>
                     </form>
                     <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary">版本列表</a>
