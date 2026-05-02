@@ -21,8 +21,8 @@ from werkzeug.utils import secure_filename
 import ai_service
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-123')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///notes.db')
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
