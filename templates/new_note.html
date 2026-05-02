@@ -4,7 +4,7 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card p-4">
-            <h4 class="mb-4">写新笔记</h4>
+            <h2 class="mb-4">写新笔记</h2>
             {% if error %}
             <div class="alert alert-danger">{{ error }}</div>
             {% endif %}
@@ -18,7 +18,7 @@
                     <div class="input-group">
                         <input type="text" name="tags" id="tagsInput" class="form-control" placeholder="用逗号分隔，如：操作系统,虚拟存储器">
                         <button type="button" class="btn btn-outline-primary" id="btnRecommendTags">
-                            <span id="btnRecommendIcon">🏷️ AI推荐</span>
+                            <span id="btnRecommendIcon">AI 推荐</span>
                             <span id="btnRecommendLoading" class="d-none">
                                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 生成中...
@@ -26,7 +26,7 @@
                         </button>
                     </div>
                     <div id="recommendedTags" class="mt-2 d-none">
-                        <small class="text-muted">AI推荐标签：</small>
+                        <small class="text-muted">AI 推荐标签：</small>
                         <div id="tagList" class="d-inline"></div>
                     </div>
                     <div id="tagError" class="text-danger small mt-1 d-none"></div>
@@ -41,17 +41,17 @@
                     <select name="folder_id" class="form-select">
                         <option value="">不放入文件夹</option>
                         {% for folder in folders %}
-                        <option value="{{ folder.id }}">📁 {{ folder.name }}</option>
+                        <option value="{{ folder.id }}">{{ folder.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-dark">保存</button>
-                    <a href="/" class="btn btn-outline-secondary"
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="/" class="btn-link-apple"
                        data-confirm="确定退出编辑？未保存的内容将丢失。">退出</a>
-                    <span id="saveHint" class="text-muted small align-self-center d-none">
+                    <span id="saveHint" class="text-muted small d-none">
                         <span class="spinner-border spinner-border-sm" role="status"></span>
-                        AI正在推荐标签...
+                        AI 正在推荐标签...
                     </span>
                 </div>
             </form>

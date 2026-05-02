@@ -4,28 +4,29 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">{{ note.title }}</h4>
-                <div>
-                    <a href="/" class="btn btn-sm btn-outline-secondary me-1">返回主页</a>
-                    <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary me-1">历史版本</a>
-                    <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">编辑</a>
-                    <a href="/notes/{{ note.id }}/export" class="btn btn-sm btn-outline-secondary me-1">导出md</a>
-                    <a href="/notes/{{ note.id }}/toggle_public" class="btn btn-sm btn-outline-{% if note.is_public %}warning{% else %}success{% endif %} me-1">
-                        {% if note.is_public %}设为私有{% else %}设为公开{% endif %}
-                    </a>
-                    <a href="/notes/{{ note.id }}/delete" class="btn btn-sm btn-outline-danger"
-                       data-confirm="确定删除这篇笔记吗？">删除</a>
-                </div>
+            <h1 class="mb-3" style="font-size:34px;">{{ note.title }}</h1>
+            <div class="action-bar mb-3">
+                <a href="/" class="btn btn-sm btn-outline-secondary">返回主页</a>
+                <a href="/notes/{{ note.id }}/history" class="btn btn-sm btn-outline-secondary">历史版本</a>
+                <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary">编辑</a>
+                <a href="/notes/{{ note.id }}/export" class="btn btn-sm btn-outline-secondary">导出 md</a>
+                <a href="/notes/{{ note.id }}/toggle_public" class="btn btn-sm {% if note.is_public %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}">
+                    {% if note.is_public %}设为私有{% else %}设为公开{% endif %}
+                </a>
+                <a href="/notes/{{ note.id }}/delete" class="btn btn-sm btn-outline-danger"
+                   data-confirm="确定删除这篇笔记吗？">删除</a>
             </div>
-            <div class="mb-3">
-                <small class="text-muted">{{ note.created_at | local_time }}</small>
+            <div class="note-meta mb-3">
+                <span>{{ note.created_at | local_time }}</span>
+                {% if note.tags %}
+                <span class="sep">·</span>
                 {% for tag in note.tags %}
                 <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
                 {% endfor %}
+                {% endif %}
             </div>
             {% if note.is_public %}
-            <div class="alert alert-success py-2">
+            <div class="alert alert-primary py-2">
                 分享链接：<a href="/share/{{ note.id }}">{{ request.host_url }}share/{{ note.id }}</a>
                 <a href="/plaza/{{ note.id }}" class="btn btn-sm btn-outline-primary ms-2">在广场中查看</a>
             </div>
@@ -34,10 +35,10 @@
             <!-- AI功能按钮区 -->
             <div class="mb-3 d-flex gap-2">
                 <button type="button" class="btn btn-sm btn-primary" id="btnAISummary">
-                    🤖 AI摘要
+                    AI 摘要
                 </button>
-                <button type="button" class="btn btn-sm btn-info text-white" id="btnAIChat">
-                    💬 AI问答
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAIChat">
+                    AI 问答
                 </button>
             </div>
             
@@ -50,7 +51,7 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">🤖 AI摘要 - 核心考点</h5>
+                        <h5 class="modal-title">AI 摘要·核心考点</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -58,7 +59,7 @@
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">加载中...</span>
                             </div>
-                            <p class="mt-2 text-muted">AI正在分析笔记内容...</p>
+                            <p class="mt-2 text-muted">AI 正在分析笔记内容...</p>
                         </div>
                         <div id="summaryError" class="alert alert-danger d-none"></div>
                         <div id="summaryContent" class="d-none">
@@ -74,13 +75,13 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">💬 AI问答 - 基于笔记内容</h5>
+                        <h5 class="modal-title">AI 问答·基于笔记内容</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                         <div id="chatMessages" class="mb-3">
                             <div class="alert alert-info">
-                                💡 你可以向AI提问关于这篇笔记的任何问题，AI会基于笔记内容为你解答。
+                                你可以向 AI 提问关于这篇笔记的任何问题，AI 会基于笔记内容为你解答。
                             </div>
                         </div>
                         <div id="chatError" class="alert alert-danger d-none"></div>

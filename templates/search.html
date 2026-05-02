@@ -3,94 +3,343 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8">
-        <form method="GET" action="/search" id="searchForm" class="mb-4">
+        <h2 class="display-title">筛选笔记</h2>
+
+        <!-- 搜索栏 -->
+        <form method="GET" action="/search" id="searchForm" class="mb-3">
+            <input type="hidden" name="scope" value="mine">
+            <input type="hidden" name="folder_id" value="{{ current_folder_id or '' }}">
+            <input type="hidden" name="tag_id" value="{{ current_tag_id or '' }}">
             <div class="input-group">
-                <div class="btn-group" role="group">
-                    <input type="radio" class="btn-check" name="scope" id="search-scope-mine" value="mine"
-                        autocomplete="off" {% if scope !='plaza' %}checked{% endif %}>
-                    <label class="btn btn-outline-secondary" for="search-scope-mine">我的笔记</label>
-                    <input type="radio" class="btn-check" name="scope" id="search-scope-plaza" value="plaza"
-                        autocomplete="off" {% if scope=='plaza' %}checked{% endif %}>
-                    <label class="btn btn-outline-secondary" for="search-scope-plaza">笔记广场</label>
-                </div>
-                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="搜索笔记标题或内容...">
+                <input type="text" name="q" value="{{ query }}" class="form-control"
+                    placeholder="搜索笔记标题或内容...">
                 <button type="submit" class="btn btn-dark">搜索</button>
             </div>
         </form>
 
-        <!-- 筛选器 -->
-        <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-            <small class="text-muted">筛选：</small>
-            <form method="GET" action="/search" class="d-flex gap-2 flex-wrap" id="filterForm">
-                <input type="hidden" name="q" value="{{ query }}">
-                <input type="hidden" name="scope" value="mine">
-                <select name="folder_id" class="form-select form-select-sm" style="width:auto"
-                    onchange="this.form.submit()">
-                    <option value="">全部文件夹</option>
-                    {% for folder in folders %}
-                    <option value="{{ folder.id }}" {% if current_folder_id==folder.id %}selected{% endif %}>📁 {{
-                        folder.name }}</option>
-                    {% endfor %}
-                </select>
-                <select name="tag_id" class="form-select form-select-sm" style="width:auto"
-                    onchange="this.form.submit()">
-                    <option value="">全部标签</option>
-                    {% for tag in tags %}
-                    <option value="{{ tag.id }}" {% if current_tag_id==tag.id %}selected{% endif %}>🏷️ {{ tag.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
+        <!-- 筛选器（美化版 · 自定义下拉） -->
+        <form method="GET" action="/search" class="filter-bar mb-4" id="filterForm">
+            <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="scope" value="mine">
+            <input type="hidden" name="folder_id" id="folderIdInput" value="{{ current_folder_id or '' }}">
+            <input type="hidden" name="tag_id" id="tagIdInput" value="{{ current_tag_id or '' }}">
 
-        {% if query or current_folder_id or current_tag_id %}
-        <p class="text-muted">共找到 {{ notes|length }} 篇笔记</p>
+            <div class="filter-item">
+                <span class="filter-label">文件夹</span>
+                <div class="apple-select" data-target="folderIdInput">
+                    <button type="button" class="apple-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="apple-select-text">
+                            {% if current_folder_id %}
+                                {% for folder in folders %}{% if folder.id == current_folder_id %}{{ folder.name }}{% endif %}{% endfor %}
+                            {% else %}全部文件夹{% endif %}
+                        </span>
+                        <svg class="apple-select-arrow" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" d="M1 1l4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <ul class="apple-select-menu" role="listbox">
+                        <li class="apple-select-option {% if not current_folder_id %}is-selected{% endif %}" role="option" data-value="">全部文件夹</li>
+                        {% for folder in folders %}
+                        <li class="apple-select-option {% if current_folder_id==folder.id %}is-selected{% endif %}" role="option" data-value="{{ folder.id }}">{{ folder.name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <span class="filter-label">标签</span>
+                <div class="apple-select" data-target="tagIdInput">
+                    <button type="button" class="apple-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="apple-select-text">
+                            {% if current_tag_id %}
+                                {% for tag in tags %}{% if tag.id == current_tag_id %}{{ tag.name }}{% endif %}{% endfor %}
+                            {% else %}全部标签{% endif %}
+                        </span>
+                        <svg class="apple-select-arrow" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" d="M1 1l4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <ul class="apple-select-menu" role="listbox">
+                        <li class="apple-select-option {% if not current_tag_id %}is-selected{% endif %}" role="option" data-value="">全部标签</li>
+                        {% for tag in tags %}
+                        <li class="apple-select-option {% if current_tag_id==tag.id %}is-selected{% endif %}" role="option" data-value="{{ tag.id }}">{{ tag.name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            {% if query or current_folder_id or current_tag_id %}
+            <a href="/search" class="btn-link-apple ms-auto">清除筛选</a>
+            {% endif %}
+        </form>
+
+        <!-- 结果统计 -->
+        <p class="text-muted mb-3">
+            {% if query or current_folder_id or current_tag_id %}
+            共找到 {{ notes|length }} 篇笔记
+            {% else %}
+            全部笔记 · 共 {{ notes|length }} 篇
+            {% endif %}
+        </p>
+
+        <!-- 笔记列表 -->
         {% for note in notes %}
         <div class="card mb-3 p-3">
-            <h5>
-                <a href="/notes/{{ note.id }}?highlight={{ query }}" class="text-decoration-none text-dark">
+            <h5 class="mb-2">
+                <a href="/notes/{{ note.id }}?highlight={{ query }}" class="note-title-link">
                     {{ note.title | highlight(query) | safe }}
                 </a>
             </h5>
-            <small class="text-muted">{{ note.created_at | local_time }}</small>
-            {% if note.folder %}
-            <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
-            {% endif %}
-            <div class="mt-2 text-muted small">
+            <div class="note-meta mb-2">
+                <span>{{ note.created_at | local_time }}</span>
+                {% if note.folder %}
+                <span class="sep">·</span>
+                <span>{{ note.folder.name }}</span>
+                {% endif %}
+            </div>
+            {% if query %}
+            <div class="text-muted small mb-2">
                 {{ note.content | preview(query) | safe }}
             </div>
-            <div class="mt-2">
+            {% endif %}
+            {% if note.tags %}
+            <div>
                 {% for tag in note.tags %}
                 <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
                 {% endfor %}
             </div>
+            {% endif %}
         </div>
         {% else %}
-        <div class="card p-4 text-center text-muted">没有找到相关笔记</div>
+        <div class="card p-4 text-center text-muted">
+            {% if query or current_folder_id or current_tag_id %}
+            没有找到相关笔记
+            {% else %}
+            还没有笔记，快去写第一篇吧
+            {% endif %}
+        </div>
         {% endfor %}
-        {% endif %}
     </div>
+
     <div class="col-md-4">
         <div class="card p-3">
-            <h6 class="mb-2">💡 搜索提示</h6>
+            <h6 class="mb-2">搜索提示</h6>
             <p class="small text-muted mb-0">
-                使用顶部搜索框切换「我的笔记」和「笔记广场」搜索范围。
-                在「我的笔记」模式下，可通过下拉框按文件夹和标签组合筛选。
+                在搜索框中输入关键词即可搜索「我的笔记」标题和内容，也可通过下拉框按文件夹和标签组合筛选。
             </p>
         </div>
     </div>
 </div>
+
+<style>
+    /* ============ 筛选栏美化（Apple 风格） ============ */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 14px;
+        background-color: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+    }
+
+    .filter-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-label {
+        font-size: 13px;
+        color: var(--color-ink-muted-48);
+        letter-spacing: -0.08px;
+    }
+
+    .filter-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+        padding: 6px 32px 6px 14px;
+        font-size: 13px;
+        color: var(--color-ink);
+        background-color: var(--color-canvas);
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%237a7a7a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.4' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        cursor: pointer;
+        transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+    }
+
+    .filter-select:hover {
+        border-color: var(--color-ink-muted-48);
+        background-color: var(--color-canvas-parchment);
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--color-primary-focus);
+        box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+        background-color: var(--color-canvas);
+    }
+
+    /* ============ 自定义下拉（Apple 风格） ============ */
+    .apple-select {
+        position: relative;
+        display: inline-block;
+        min-width: 160px;
+    }
+
+    .apple-select-trigger {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+        padding: 6px 12px 6px 14px;
+        font-size: 13px;
+        color: var(--color-ink);
+        background-color: var(--color-canvas);
+        cursor: pointer;
+        transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+    }
+    .apple-select-trigger:hover {
+        border-color: var(--color-ink-muted-48);
+        background-color: var(--color-canvas-parchment);
+    }
+    .apple-select.is-open .apple-select-trigger,
+    .apple-select-trigger:focus-visible {
+        outline: none;
+        border-color: var(--color-primary-focus);
+        box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+        background-color: var(--color-canvas);
+    }
+
+    .apple-select-text {
+        flex: 1;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .apple-select-arrow {
+        flex-shrink: 0;
+        color: var(--color-ink-muted-48);
+        transition: transform .2s ease;
+    }
+    .apple-select.is-open .apple-select-arrow {
+        transform: rotate(180deg);
+        color: var(--color-primary);
+    }
+
+    .apple-select-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 100%;
+        max-height: 260px;
+        overflow-y: auto;
+        margin: 0;
+        padding: 6px;
+        list-style: none;
+        background-color: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity .18s ease, transform .18s ease;
+    }
+    .apple-select.is-open .apple-select-menu {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .apple-select-option {
+        padding: 7px 12px;
+        font-size: 13px;
+        color: var(--color-ink);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    .apple-select-option + .apple-select-option { margin-top: 2px; }
+    .apple-select-option:hover {
+        background-color: var(--color-canvas-parchment);
+    }
+    .apple-select-option.is-selected {
+        background-color: var(--color-primary);
+        color: #fff;
+    }
+    .apple-select-option.is-selected:hover {
+        background-color: var(--color-primary-focus);
+        color: #fff;
+    }
+</style>
+{% endblock %}
 {% block scripts %}
 <script>
-    document.querySelectorAll('#searchForm input[name="scope"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            if (this.value === 'plaza') {
-                window.location.href = '/plaza';
-            } else {
-                window.location.href = '/';
-            }
+    // 自定义 Apple 风格下拉
+    (function () {
+        const selects = document.querySelectorAll('.apple-select');
+
+        function closeAll(except) {
+            selects.forEach(function (s) {
+                if (s !== except) {
+                    s.classList.remove('is-open');
+                    const trigger = s.querySelector('.apple-select-trigger');
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        selects.forEach(function (sel) {
+            const trigger = sel.querySelector('.apple-select-trigger');
+            const menu = sel.querySelector('.apple-select-menu');
+            const textEl = sel.querySelector('.apple-select-text');
+            const targetId = sel.getAttribute('data-target');
+            const hiddenInput = document.getElementById(targetId);
+            const form = sel.closest('form');
+
+            trigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const willOpen = !sel.classList.contains('is-open');
+                closeAll(sel);
+                sel.classList.toggle('is-open', willOpen);
+                trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+
+            menu.addEventListener('click', function (e) {
+                const opt = e.target.closest('.apple-select-option');
+                if (!opt) return;
+                const value = opt.getAttribute('data-value') || '';
+                // 更新 UI
+                menu.querySelectorAll('.apple-select-option').forEach(function (li) {
+                    li.classList.remove('is-selected');
+                });
+                opt.classList.add('is-selected');
+                textEl.textContent = opt.textContent.trim();
+                // 更新值并提交
+                if (hiddenInput) hiddenInput.value = value;
+                sel.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                if (form) form.submit();
+            });
         });
-    });
+
+        document.addEventListener('click', function () { closeAll(null); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeAll(null);
+        });
+    })();
 </script>
-{% endblock %}
 {% endblock %}

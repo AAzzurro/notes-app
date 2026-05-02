@@ -10,7 +10,7 @@
             </div>
             <div class="mb-3">
                 <small class="text-muted">
-                    ✍️ {{ note.author.username }}
+                    作者 {{ note.author.username }}
                     &nbsp;·&nbsp; {{ note.created_at | local_time }}
                 </small>
                 {% for tag in note.tags %}
@@ -22,10 +22,10 @@
             <!-- AI功能按钮区 -->
             <div class="mb-3 d-flex gap-2">
                 <button type="button" class="btn btn-sm btn-primary" id="btnAISummary">
-                    🤖 AI摘要
+                    AI 摘要
                 </button>
                 <button type="button" class="btn btn-sm btn-info text-white" id="btnAIChat">
-                    💬 AI问答
+                    AI 问答
                 </button>
             </div>
 
@@ -37,7 +37,7 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">🤖 AI摘要 - 核心考点</h5>
+                        <h5 class="modal-title">AI 摘要 - 核心考点</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -61,13 +61,13 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">💬 AI问答 - 基于笔记内容</h5>
+                        <h5 class="modal-title">AI 问答 - 基于笔记内容</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                         <div id="chatMessages" class="mb-3">
                             <div class="alert alert-info">
-                                💡 你可以向AI提问关于这篇笔记的任何问题，AI会基于笔记内容为你解答。
+                                你可以向AI提问关于这篇笔记的任何问题，AI会基于笔记内容为你解答。
                             </div>
                         </div>
                         <div id="chatError" class="alert alert-danger d-none"></div>
@@ -87,7 +87,7 @@
 
         <!-- 评论区 -->
         <div class="card p-4">
-            <h6 class="mb-3">💬 评论 ({{ note.comments|length }})</h6>
+            <h6 class="mb-3">评论 ({{ note.comments|length }})</h6>
 
             <!-- 发表评论 -->
             <form method="POST" action="/plaza/{{ note.id }}/comment" class="mb-4">

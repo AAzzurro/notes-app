@@ -4,7 +4,7 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0">📜 历史版本 - {{ note.title }}</h5>
+            <h5 class="mb-0">历史版本 - {{ note.title }}</h5>
             <a href="/notes/{{ note.id }}" class="btn btn-sm btn-outline-secondary">返回笔记</a>
         </div>
         {% if versions %}
@@ -17,7 +17,7 @@
                     <small class="text-muted">{{ v.created_at | local_time }}</small>
                     {% if v.tags_snapshot %}
                     <br>
-                    <small class="text-muted">🏷️ {{ v.tags_snapshot }}</small>
+                    <small class="text-muted">标签：{{ v.tags_snapshot }}</small>
                     {% endif %}
                 </div>
                 <div class="d-flex gap-1">

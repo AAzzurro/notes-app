@@ -1,27 +1,28 @@
 {% extends 'base.html' %}
 {% block title %}注册{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <div class="card p-4 mt-5">
-            <h4 class="mb-4 text-center">注册账号</h4>
-            <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label">用户名</label>
-                    <input type="text" name="username" class="form-control">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">密码</label>
-                    <input type="password" name="password" class="form-control" minlength="8" required>
-                    <div class="form-text">密码不少于8位，需同时包含字母和数字</div>
-                </div>
-                {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
-                <button type="submit" class="btn btn-dark w-100">注册</button>
-            </form>
-            <p class="text-center mt-3">已有账号？<a href="/login">登录</a></p>
+<div class="d-flex justify-content-center py-5">
+    <div class="card p-4" style="width: 360px;">
+        <div class="text-center mb-4">
+            <h2 class="mb-2">创建账号</h2>
+            <p class="text-muted" style="font-size: 14px;">加入随心记，开始书写笔记</p>
         </div>
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">用户名</label>
+                <input type="text" name="username" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">密码</label>
+                <input type="password" name="password" class="form-control" minlength="8" required>
+                <div class="form-text">密码不少于8位，需同时包含字母和数字</div>
+            </div>
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            <button type="submit" class="btn btn-primary w-100">创建账号</button>
+        </form>
+        <p class="text-center mt-3 mb-0" style="font-size: 14px;">已有账号？<a href="/login">登录</a></p>
     </div>
 </div>
 {% endblock %}

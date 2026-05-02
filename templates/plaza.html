@@ -4,7 +4,7 @@
 <div class="row">
     <div class="col-md-8">
         <div class="mb-4">
-            <h5 class="mb-0">🌐 笔记广场</h5>
+            <h5 class="mb-0">笔记广场</h5>
             <small class="text-muted">使用顶部搜索框，选择「笔记广场」范围来搜索</small>
         </div>
         {% for note in notes %}
@@ -13,7 +13,7 @@
                 <div>
                     <h5><a href="/plaza/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
                     <small class="text-muted">
-                        ✍️ <a href="#" class="text-decoration-none">{{ note.author.username }}</a>
+                        作者 <a href="#" class="text-decoration-none">{{ note.author.username }}</a>
                         &nbsp;·&nbsp; {{ note.created_at | local_time }}
                     </small>
                     <div class="mt-2">
@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <div class="text-end">
-                    <span class="badge bg-secondary">💬 {{ note.comments|length }}</span>
+                    <span class="badge bg-secondary">{{ note.comments|length }}</span>
                 </div>
             </div>
         </div>
@@ -39,7 +39,7 @@
     </div>
     <div class="col-md-4">
         <div class="card p-3">
-            <h6 class="mb-2">💡 关于笔记广场</h6>
+            <h6 class="mb-2">关于笔记广场</h6>
             <p class="small text-muted mb-0">
                 笔记广场展示所有用户设为公开的笔记。你可以将笔记设为公开来分享给其他用户，也可以对公开笔记发表评论。
             </p>

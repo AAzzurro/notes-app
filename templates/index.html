@@ -1,45 +1,53 @@
 {% extends 'base.html' %}
 {% block title %}我的笔记{% endblock %}
+{% block scripts %}
+<script>
+    // 展开/收起更多标签
+    (function () {
+        var btn = document.getElementById('toggleMoreTags');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var expanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            document.querySelectorAll('#tagsWrap .extra-tag').forEach(function (el) {
+                el.classList.toggle('d-none');
+            });
+        });
+    })();
+</script>
+{% endblock %}
 {% block content %}
 <div class="row">
     <div class="col-md-8">
-        <h5 class="mb-4">我的笔记</h5>
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-            <a href="/?{% if current_tag_id %}tag_id={{ current_tag_id }}{% endif %}"
-                class="btn btn-sm {% if not current_folder_id and not current_tag_id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        <h2 class="display-title">我的笔记</h2>
+        <div class="d-flex gap-2 mb-4 flex-wrap">
+            <a href="/" class="btn btn-sm {% if not current_folder_id and not current_tag_id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
                 全部
             </a>
-            {% for folder in folders %}
-            <a href="/?folder_id={{ folder.id }}{% if current_tag_id %}&tag_id={{ current_tag_id }}{% endif %}"
-                class="btn btn-sm {% if current_folder_id == folder.id %}btn-dark{% else %}btn-outline-secondary{% endif %}">
-                📁 {{ folder.name }}
-            </a>
-            {% endfor %}
-            {% for tag in tags %}
-            <a href="/?{% if current_folder_id %}folder_id={{ current_folder_id }}&{% endif %}tag_id={{ tag.id }}"
-                class="btn btn-sm tag-color-{{ tag.id % 8 }} {% if current_tag_id == tag.id %}opacity-100{% else %}opacity-75{% endif %}"
-                style="color:white">
-                {{ tag.name }}
-            </a>
-            {% endfor %}
+            <a href="/search?scope=mine" class="btn btn-sm btn-outline-secondary">筛选</a>
             {% if current_folder_id or current_tag_id %}
-            <a href="/" class="btn btn-sm btn-outline-danger">清除筛选</a>
+            <a href="/" class="btn-link-apple">清除筛选</a>
             {% endif %}
         </div>
         {% for note in notes %}
-        <div class="card mb-3 p-3">
+        <div class="card mb-3 p-4">
             <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h5><a href="/notes/{{ note.id }}" class="text-decoration-none text-dark">{{ note.title }}</a></h5>
-                    <small class="text-muted">{{ note.created_at | local_time }}</small>
-                    {% if note.folder %}
-                    <small class="text-muted ms-2">📁 {{ note.folder.name }}</small>
-                    {% endif %}
-                    <div class="mt-2">
+                <div class="flex-grow-1">
+                    <h5 class="mb-2"><a href="/notes/{{ note.id }}" class="note-title-link">{{ note.title }}</a></h5>
+                    <div class="note-meta">
+                        <span>{{ note.created_at | local_time }}</span>
+                        {% if note.folder %}
+                        <span class="sep">·</span>
+                        <span>{{ note.folder.name }}</span>
+                        {% endif %}
+                    </div>
+                    {% if note.tags %}
+                    <div class="mt-3">
                         {% for tag in note.tags %}
                         <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }}">{{ tag.name }}</a>
                         {% endfor %}
                     </div>
+                    {% endif %}
                 </div>
                 {% if note.is_public %}
                 <span class="badge bg-success">公开</span>
@@ -47,9 +55,9 @@
             </div>
         </div>
         {% else %}
-        <div class="card p-4 text-center text-muted">
-            <p>还没有笔记，快去写第一篇吧！</p>
-            <a href="/notes/new" class="btn btn-dark">写笔记</a>
+        <div class="text-center py-5">
+            <p class="text-muted mb-3">还没有笔记，快去写第一篇吧</p>
+            <a href="/notes/new" class="btn btn-primary">写笔记</a>
         </div>
         {% endfor %}
     </div>
@@ -57,19 +65,19 @@
         <!-- 文件夹 -->
         <div class="card p-3 mb-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">📁 文件夹</h6>
+                <h6 class="mb-0">文件夹</h6>
                 <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
                     data-bs-target="#newFolderForm">+</button>
             </div>
             <div class="collapse mb-2" id="newFolderForm">
                 <form method="POST" action="/folders/new" class="d-flex gap-2">
                     <input type="text" name="name" class="form-control form-control-sm" placeholder="文件夹名称">
-                    <button type="submit" class="btn btn-sm btn-dark">建</button>
+                    <button type="submit" class="btn btn-sm btn-primary">建</button>
                 </form>
             </div>
             {% for folder in folders %}
-            <a href="/folders/{{ folder.id }}" class="d-block text-decoration-none text-dark py-1">
-                📁 {{ folder.name }}
+            <a href="/folders/{{ folder.id }}" class="d-block note-title-link py-1">
+                {{ folder.name }}
             </a>
             {% else %}
             <p class="text-muted small mb-0">还没有文件夹</p>
@@ -77,31 +85,48 @@
         </div>
         <!-- 标签 -->
         <div class="card p-3 mb-3">
-            <h6 class="mb-3">🏷️ 所有标签</h6>
-            {% set all_tags = [] %}
+            <h6 class="mb-3">所有标签</h6>
+            {% set ns = namespace(counts={}) %}
             {% for note in notes %}
-            {% for tag in note.tags %}
-            {% if tag not in all_tags %}
-            {% set _ = all_tags.append(tag) %}
-            {% endif %}
+                {% for tag in note.tags %}
+                    {% if tag.id in ns.counts %}
+                        {% set _ = ns.counts.update({tag.id: {'tag': tag, 'count': ns.counts[tag.id].count + 1}}) %}
+                    {% else %}
+                        {% set _ = ns.counts.update({tag.id: {'tag': tag, 'count': 1}}) %}
+                    {% endif %}
+                {% endfor %}
             {% endfor %}
-            {% endfor %}
-            {% for tag in all_tags %}
-            <a href="/tags/{{ tag.id }}" class="tag-badge tag-color-{{ tag.id % 8 }} d-inline-block mb-2">{{ tag.name
-                }}</a>
+            {% set sorted_tags = ns.counts.values() | sort(attribute='count', reverse=True) | list %}
+            {% set top_tags = sorted_tags[:6] %}
+            {% set rest_tags = sorted_tags[6:] %}
+            {% if sorted_tags %}
+                <div id="tagsWrap">
+                    {% for item in top_tags %}
+                    <a href="/tags/{{ item.tag.id }}" class="tag-badge tag-color-{{ item.tag.id % 8 }}">{{ item.tag.name }}</a>
+                    {% endfor %}
+                    {% if rest_tags %}
+                    {% for item in rest_tags %}
+                    <a href="/tags/{{ item.tag.id }}" class="tag-badge tag-color-{{ item.tag.id % 8 }} extra-tag d-none">{{ item.tag.name }}</a>
+                    {% endfor %}
+                    <button type="button" class="tag-badge btn-toggle-more" id="toggleMoreTags" aria-expanded="false">
+                        <span class="tt-more">展开全部（+{{ rest_tags|length }}）</span>
+                        <span class="tt-less">收起</span>
+                    </button>
+                    {% endif %}
+                </div>
             {% else %}
             <p class="text-muted small mb-0">还没有标签</p>
-            {% endfor %}
+            {% endif %}
         </div>
         <!-- 笔记广场入口 -->
         <div class="card p-3 mb-3">
-            <h6 class="mb-2">🌐 笔记广场</h6>
+            <h6 class="mb-2">笔记广场</h6>
             <p class="small text-muted">浏览其他用户分享的公开笔记，发表评论互动。</p>
             <a href="/plaza" class="btn btn-sm btn-outline-secondary w-100">进入广场</a>
         </div>
         <!-- 回收站入口 -->
         <div class="card p-3">
-            <h6 class="mb-2">🗑️ 回收站</h6>
+            <h6 class="mb-2">回收站</h6>
             <p class="small text-muted">已删除 {{ trash_count }} 篇笔记</p>
             <a href="/trash" class="btn btn-sm btn-outline-secondary w-100">查看回收站</a>
         </div>
