@@ -39,7 +39,7 @@ env/
 .env.*.local
 
 # Database (可选，根据需要)
-# instance/*.db
+instance/*.db
 
 # Logs
 *.log
