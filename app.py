@@ -131,8 +131,17 @@ def get_or_404(model, pk):
 
 
 def sync_tags(note, raw_tags: str):
-    """将逗号分隔的标签字符串同步到 note.tags。"""
-    tag_names = [t.strip() for t in raw_tags.split(',') if t.strip()]
+    """将逗号分隔的标签字符串同步到 note.tags。
+    同一笔记内若出现多个同名标签会自动去重合并为一个。
+    """
+    raw_names = [t.strip() for t in raw_tags.split(',') if t.strip()]
+    # 按顺序去重，避免同一笔记绑定两个同名 Tag 触发 IntegrityError
+    seen = set()
+    tag_names = []
+    for name in raw_names:
+        if name not in seen:
+            seen.add(name)
+            tag_names.append(name)
     note.tags = []
     for name in tag_names:
         tag = Tag.query.filter_by(name=name).first()
@@ -475,9 +484,14 @@ def export_note(note_id):
 @login_required
 def new_folder():
     name = request.form.get('name', '').strip()
-    if name:
-        db.session.add(Folder(name=name, user_id=current_user.id))
-        db.session.commit()
+    if not name:
+        return redirect(url_for('index'))
+    # 同一用户下文件夹名唯一：重名时不新建，跳回首页并附带错误信息用于弹窗提示
+    existing = Folder.query.filter_by(user_id=current_user.id, name=name).first()
+    if existing:
+        return redirect(url_for('index', folder_error='duplicate', folder_name=name))
+    db.session.add(Folder(name=name, user_id=current_user.id))
+    db.session.commit()
     return redirect(url_for('index'))
 
 

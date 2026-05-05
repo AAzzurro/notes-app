@@ -544,6 +544,22 @@
             </div>
         </div>
     </div>
+
+    <!-- 全局提示弹框（只有确定按钮） -->
+    <div class="modal fade" id="appAlertModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="appAlertTitle">提示</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body" id="appAlertMessage"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" style="min-width:80px;padding:0.375rem 0.75rem">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // 全局自定义确认弹框：替代浏览器 confirm()
@@ -564,6 +580,17 @@
                 getModal().show();
             };
 
+            // 全局提示弹框：替代 alert()
+            let _alertModal = null;
+            window.appAlert = function (message, title) {
+                if (!_alertModal) {
+                    _alertModal = new bootstrap.Modal(document.getElementById('appAlertModal'));
+                }
+                document.getElementById('appAlertMessage').textContent = message || '';
+                if (title) document.getElementById('appAlertTitle').textContent = title;
+                _alertModal.show();
+            };
+
             document.getElementById('appConfirmOk').addEventListener('click', function () {
                 const cb = _onOk;
                 _onOk = null;
@@ -578,6 +605,8 @@
             document.addEventListener('click', function (e) {
                 const el = e.target.closest('[data-confirm]');
                 if (!el) return;
+                // 如果 data-confirm 在 FORM 上，完全交给 submit 事件处理（防止拦截表单内 submit 按钮的 click）
+                if (el.tagName === 'FORM') return;
                 // 对于表单内的 submit 按钮，交给 submit 事件处理
                 if (el.tagName === 'BUTTON' && el.type === 'submit' && el.form) return;
                 if (el.dataset._confirmed === '1') { el.dataset._confirmed = ''; return; }

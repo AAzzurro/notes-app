@@ -14,6 +14,19 @@
             });
         });
     })();
+
+    // 文件夹重名提示
+    {% if request.args.get('folder_error') == 'duplicate' %}
+    window.addEventListener('DOMContentLoaded', function () {
+        if (typeof appAlert === 'function') {
+            appAlert('文件夹「{{ request.args.get("folder_name", "") | e }}」已存在，请使用其他名称。', '无法创建文件夹');
+        }
+        // 清理 URL 中的错误参数，避免刷新后再次弹窗
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    });
+    {% endif %}
 </script>
 {% endblock %}
 {% block content %}
